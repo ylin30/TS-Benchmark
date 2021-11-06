@@ -67,13 +67,13 @@ public class OpentsdbAdapter implements BaseAdapter {
                 continue;
             }
 //	            Map<String,Object> pointMap=new HashMap<>();
-            String timestamp = sensors[0];
+            Long timestamp = Long.parseLong(sensors[0]);
             String farmId = sensors[1];
             String deviceId = sensors[2];
             int length = sensors.length;
             for (int index = 3; index < length; index++) {
                 Map<String, Object> pointMap = new HashMap<>();
-                String value = sensors[index];
+                Double value = Double.parseDouble(sensors[index]);
                 String sensorName = "s" + (index - 2);
                 pointMap.put("metric", METRIC);
                 pointMap.put("timestamp", timestamp);

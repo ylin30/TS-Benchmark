@@ -235,9 +235,9 @@ public class TSBM {
                         break;
                     }
                     try {
-                        String data = queue.take();
+                        String data = queue.poll(100, TimeUnit.MILLISECONDS);
                         if (data == null) {
-                            Thread.sleep(100);
+                            //Thread.sleep(100);
                             continue;
                         }
                         adapter.insertData(data);
@@ -255,9 +255,9 @@ public class TSBM {
                         break;
                     }
                     try {
-                        String data = queue.take();
+                        String data = queue.poll(100, TimeUnit.MILLISECONDS);
                         if (data == null) {
-                            Thread.sleep(100);
+                            //Thread.sleep(100);
                             continue;
                         }
                         adapter.insertData(data);

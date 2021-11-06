@@ -200,8 +200,8 @@ public class TSDBTest {
 
     public static void testOpentsdb(boolean loadParam) {
         String className = "cn.edu.ruc.OpentsdbAdapter";
-        String ip = "127.0.0.1";
-        String port = "8242";
+        String ip = properties.getProperty("Opentsdb_ip");
+        String port = properties.getProperty("Opentsdb_port");
         String userName = "root"; //not required
         String passwd = "root"; //not required
         TSBM.startPerformTest(dataPath, className, ip, port, userName, passwd, false, loadParam);
