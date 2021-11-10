@@ -20,11 +20,16 @@ public class TSBM {
     public static final String LINE_SEPARATOR = System.getProperty("line.separator");
     private static final Random RANDOM = new Random();
     private static final long SLEEP_TIME = 200L;
-    private static final int MAX_FARM = 512;
+    private static final int MAX_FARM = 128; //512;
     private static final int MAX_ROWS = 300;
     private static final int MAX_SENSOR = 50;
     private static final int SUM_FARM = 2;
     private static final long IMPORT_START = 1514736000000L;
+    private static final int MAX_BATCH_NUM = 5 * 3600 / 7; // 5 hours, batch interval: 7 sec, one timestamp one batch
+    private static final int MAX_QUERY_RANGE_HOURS = 24;
+    private static final int MAX_QUERY_BATCH = 10;
+    private static final int IMPORT_DATA_HOURS = MAX_QUERY_RANGE_HOURS + MAX_QUERY_BATCH;
+
     private static BlockingQueue<String> queue = new LinkedBlockingQueue<String>(100);
 
     public static void main(String[] args) throws Exception {
@@ -93,7 +98,7 @@ public class TSBM {
 
         }
 
-        // 3 append测试
+        // 3 append测试: Read data from files generated in step 1. data generation
         System.out.println(">>>>>>>>>>append test begin " + System.currentTimeMillis() + ">>>>>>>>>>>>");
         String appendResult = appendPerform(dataPath, adapter, maxFarm, maxRows);
         System.out.println(appendResult);
@@ -137,23 +142,23 @@ public class TSBM {
 
     private static void generateInsertData(String basePath, int maxFarm, int maxRows) {
 
-        long importEnd = IMPORT_START + 12 * 3600 * 1000;
+        long importEnd = IMPORT_START + IMPORT_DATA_HOURS * 3600 * 1000;
         // 2 生成 1/2/4/8/16/32/64 farm数据 每个farm50个device，每个10批次，一个批次一个文件
-        int batchSum = 5;
+        int batchSum = MAX_BATCH_NUM;
+        int deviceNum = 50;
         long insertStart = importEnd;
         for (int farmNum = 1; farmNum <= maxFarm; farmNum = farmNum * 2) {
-            int deviceNum = 50;
             for (int batchNum = 1; batchNum <= batchSum; batchNum++) {
                 for (int cFarm = 1; cFarm <= farmNum; cFarm++) {
                     String path = basePath + "/farm/" + farmNum + "/" + batchNum + "/" + cFarm;
                     FileUtils.writeLine(path, generateData(insertStart + 7000 * (batchNum - 1),
-                            insertStart + 7000 * batchNum, cFarm, 50));
+                            insertStart + 7000 * batchNum, cFarm, deviceNum));
                 }
             }
             insertStart += 7000 * batchSum * farmNum;
         }
         // 3 生成 8个farm，farm50，100，150，200，250，300数据
-        for (int rowNum = 50; rowNum <= maxRows; rowNum = rowNum + 50) {
+        for (int rowNum = deviceNum; rowNum <= maxRows; rowNum = rowNum + deviceNum) {
             int farmNum = 8;
             for (int batchNum = 1; batchNum <= batchSum; batchNum++) {
                 for (int cFarm = 1; cFarm <= farmNum; cFarm++) {
@@ -195,7 +200,7 @@ public class TSBM {
 
     private static String importData(BaseAdapter adapter, String dataPath) {
         long importStart = IMPORT_START;// 2018-01-01 00:00:00
-        long importEnd = IMPORT_START + 12 * 3600 * 1000;
+        long importEnd = IMPORT_START + IMPORT_DATA_HOURS * 3600 * 1000;
         final Boolean[] out = {false};
         final long[] nums= {0L};
         Thread th1 = new Thread() {
@@ -297,7 +302,7 @@ public class TSBM {
         appendResultBuffer.append("###append farm++ result");
         appendResultBuffer.append(LINE_SEPARATOR);
         for (int farm = 1; farm <= maxFarm; farm = farm * 2) {
-            int batchMax = 5;
+            int batchMax = MAX_BATCH_NUM;
             int row = 50;
             ExecutorService pool = Executors.newFixedThreadPool(farm);
             CompletionService<Long> cs = new ExecutorCompletionService<Long>(pool);
@@ -336,7 +341,7 @@ public class TSBM {
         appendResultBuffer.append("###append device++ result");
         appendResultBuffer.append(LINE_SEPARATOR);
         for (int row = 50; row <= maxRows; row = row + 50) {
-            int batchMax = 5;
+            int batchMax = MAX_BATCH_NUM;
             int farm = 8;//线程数
             ExecutorService pool = Executors.newFixedThreadPool(farm);
             CompletionService<Long> cs = new ExecutorCompletionService<Long>(pool);
@@ -452,19 +457,20 @@ public class TSBM {
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /////////////////////read 测试
+    /////////////////////Read data from import.
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     private static String readPerform(BaseAdapter adapter) {
         StringBuffer resultBuffer = new StringBuffer();
         resultBuffer.append("##query  result");
         resultBuffer.append(LINE_SEPARATOR);
-        int batch = 10;
+        int batch = MAX_QUERY_BATCH;
 
 
         // 五类查询，每类10个批次
-        long time = 1514736000000l;//2018-01-01 00:00:00
+        long time = IMPORT_START;//2018-01-01 00:00:00
        //long time = 1514822400000l;//test
-        //首先查询一次刷新数据
-        adapter.query1(time, time + 100 * 3600 * 24);
+        //首先查询一次刷新数据. Warm up cache.
+        adapter.query1(time, time + 1000 * 3600 * IMPORT_DATA_HOURS);
         sleep(SLEEP_TIME);
         System.out.println(">>>>>>>>>>query-1 end " + System.currentTimeMillis() + ">>>>>>>>>>");
         // 每一批次比前一批次时间维度平移1hour
@@ -488,7 +494,7 @@ public class TSBM {
         long sumTimeout2 = 0;
         for (int cBatch = 1; cBatch <= batch; cBatch++) {
             long start = time + (cBatch - 1) * slipUnit;//1 day
-            long incre = 3600 * 1000 * 24;
+            long incre = 3600 * 1000 * MAX_QUERY_RANGE_HOURS;
             long end = time + incre + (cBatch - 1) * slipUnit;
             double value = 3.0;//阈值 TODO
             long timeout = adapter.query2(start, end, value);
@@ -505,7 +511,7 @@ public class TSBM {
 
         for (int cBatch = 1; cBatch <= batch; cBatch++) {
             long start = time + (cBatch - 1) * slipUnit;// 1 day
-            long incre = 3600 * 1000 * 24;
+            long incre = 3600 * 1000 * MAX_QUERY_RANGE_HOURS;
             long end = time + incre + (cBatch - 1) * slipUnit;
             long timeout = adapter.query3(start, end);
             sumTimeout3 += timeout;
@@ -521,7 +527,7 @@ public class TSBM {
 
         for (int cBatch = 1; cBatch <= batch; cBatch++) {
             long start = time + (cBatch - 1) * slipUnit;// 15 min
-            long incre = 1000 * 15 * 50;
+            long incre = 1000 * 15 * 60;
             long end = time + incre + (cBatch - 1) * slipUnit;
             long timeout = adapter.query4(start, end);
             sumTimeout4 += timeout;
@@ -537,7 +543,7 @@ public class TSBM {
         long sumTimeout5 = 0;
         for (int cBatch = 1; cBatch <= batch; cBatch++) {
             long start = time + (cBatch - 1) * slipUnit;//15 min
-            long incre = 1000 * 15 * 50;
+            long incre = 1000 * 15 * 60;
             long end = time + incre + (cBatch - 1) * slipUnit;
             long timeout = adapter.query5(start, end);
             sumTimeout5 += timeout;
