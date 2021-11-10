@@ -25,7 +25,7 @@ public class TSBM {
     private static final int MAX_SENSOR = 50;
     private static final int SUM_FARM = 2;
     private static final long IMPORT_START = 1514736000000L;
-    private static final int MAX_BATCH_NUM = 5 * 3600 / 7; // 5 hours, batch interval: 7 sec, one timestamp one batch
+    private static final int MAX_BATCH_NUM = 5 * 60 / 7; //5 * 3600 / 7; // 5 hours, batch interval: 7 sec, one timestamp one batch
     private static final int MAX_QUERY_RANGE_HOURS = 24;
     private static final int MAX_QUERY_BATCH = 10;
     private static final int IMPORT_DATA_HOURS = MAX_QUERY_RANGE_HOURS + MAX_QUERY_BATCH;
@@ -155,7 +155,9 @@ public class TSBM {
                             insertStart + 7000 * batchNum, cFarm, deviceNum));
                 }
             }
-            insertStart += 7000 * batchSum * farmNum;
+            // For each farmNum (e.g., 1, 2, 4), we generate MAX_BATCH_NUM number of timestamps.
+            // So for the next farNum, we only need to increase start timestamp by MAX_BATCH_NUM*7000.
+            insertStart += 7000 * batchSum;
         }
         // 3 生成 8个farm，farm50，100，150，200，250，300数据
         for (int rowNum = deviceNum; rowNum <= maxRows; rowNum = rowNum + deviceNum) {
@@ -167,7 +169,7 @@ public class TSBM {
                             , insertStart + 7000 * batchNum, cFarm, rowNum));
                 }
             }
-            insertStart += 7000 * batchSum * farmNum;
+            insertStart += 7000 * batchSum;
         }
     }
 
