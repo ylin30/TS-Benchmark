@@ -142,6 +142,17 @@ public class TSDBTest {
                 testKdbPlus(false);
             }
         }
+        if ("12".equals(args[0])) {
+            if ("0".equals(args[1])) {
+                TSBM.generateData(dataPath);
+            }
+            if ("1".equals(args[1])) {
+                testOpentsdbTickTockPlain(true);
+            }
+            if ("2".equals(args[1])) {
+                testOpentsdbTickTockPlain(false);
+            }
+        }
     }
 
     private static void testKdbPlus(boolean loadParam) {
@@ -198,8 +209,19 @@ public class TSDBTest {
         TSBM.startPerformTest(dataPath, className, ip, port, userName, passwd, false, loadParam);
     }
 
+    // Writes are in json format.
     public static void testOpentsdb(boolean loadParam) {
         String className = "cn.edu.ruc.OpentsdbAdapter";
+        String ip = properties.getProperty("Opentsdb_ip");
+        String port = properties.getProperty("Opentsdb_port");
+        String userName = "root"; //not required
+        String passwd = "root"; //not required
+        TSBM.startPerformTest(dataPath, className, ip, port, userName, passwd, false, loadParam);
+    }
+
+    // Writes are in plain format, e.g., 'put testM1 1633412175 123 host=foo'
+    public static void testOpentsdbTickTockPlain(boolean loadParam) {
+        String className = "cn.edu.ruc.OpentsdbTickTockPlainAdapter";
         String ip = properties.getProperty("Opentsdb_ip");
         String port = properties.getProperty("Opentsdb_port");
         String userName = "root"; //not required

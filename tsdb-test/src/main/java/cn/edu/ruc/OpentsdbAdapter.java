@@ -11,16 +11,16 @@ import java.util.concurrent.TimeUnit;
 
 
 public class OpentsdbAdapter implements BaseAdapter {
-    private String writeURL = "/api/put";
-    private String queryURL = "/api/query";
-    private String METRIC = "wind.perform";
-    private String FARM_TAG = "FARM_TAG";
-    private String DEVICE_TAG = "DEVICE_TAG";
-    private String SENSOR_TAG = "SENSOR_TAG";
-    MediaType MEDIA_TYPE_TEXT = MediaType.parse("text/plain");
-    private static final String LINE_SEPARATOR = System.getProperty("line.separator");
+    protected String writeURL = "/api/put";
+    protected String queryURL = "/api/query";
+    protected String METRIC = "wind.perform";
+    protected String FARM_TAG = "FARM_TAG";
+    protected String DEVICE_TAG = "DEVICE_TAG";
+    protected String SENSOR_TAG = "SENSOR_TAG";
+    protected MediaType MEDIA_TYPE_TEXT = MediaType.parse("text/plain");
+    protected static final String LINE_SEPARATOR = System.getProperty("line.separator");
 
-    private static final OkHttpClient OK_HTTP_CLIENT = new OkHttpClient().newBuilder()
+    protected static final OkHttpClient OK_HTTP_CLIENT = new OkHttpClient().newBuilder()
             .readTimeout(500000, TimeUnit.MILLISECONDS)
             .connectTimeout(500000, TimeUnit.MILLISECONDS)
             .writeTimeout(500000, TimeUnit.MILLISECONDS)
@@ -30,7 +30,7 @@ public class OpentsdbAdapter implements BaseAdapter {
         return OK_HTTP_CLIENT;
     }
 
-    private long exeOkHttpRequest(Request request) {
+    protected long exeOkHttpRequest(Request request) {
         long costTime = 0L;
         Response response;
         OkHttpClient client = getOkHttpClient();
@@ -131,9 +131,26 @@ public class OpentsdbAdapter implements BaseAdapter {
     }
 
     @Override
-    public long query2(long arg0, long arg1, double arg2) {
+    public long query2(long start, long end, double arg2) {
         // TODO Auto-generated method stub
-        return 0;
+        // Opentsdb doesn't support filter out data points with values larger or less than a specific threshold.
+        // So we just return all data points in the time range.
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("start", start);
+        map.put("end", end);
+        Map<String, Object> subQuery = new HashMap<String, Object>();
+        subQuery.put("aggregator", "avg");
+        subQuery.put("metric", METRIC);
+        Map<String, Object> subTag = new HashMap<String, Object>();
+        subTag.put(FARM_TAG, "f1");
+        subTag.put(DEVICE_TAG, "d2");
+        subQuery.put("tags", subTag);
+        List<Map<String, Object>> list2 = new ArrayList<>();
+        list2.add(subQuery);
+        map.put("queries", list2);
+        String json = JSON.toJSONString(map);
+        //	System.out.println(json);
+        return execQuery(json);
     }
 
     @Override

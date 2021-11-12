@@ -204,7 +204,9 @@ public class TSBM {
         long importStart = IMPORT_START;// 2018-01-01 00:00:00
         long importEnd = IMPORT_START + IMPORT_DATA_HOURS * 3600 * 1000;
         final Boolean[] out = {false};
-        final long[] nums= {0L};
+        // 0: total count; 1: total insert time (ms) in thread 2; 2: total insert time (ms) in thread 3
+        final long[] nums= {0L,0L,0L};
+
         Thread th1 = new Thread() {
             public void run() {
                 int count = 0;
@@ -247,7 +249,7 @@ public class TSBM {
                             //Thread.sleep(100);
                             continue;
                         }
-                        adapter.insertData(data);
+                        nums[1] += adapter.insertData(data);
                     }catch (InterruptedException e){
                         e.printStackTrace();
                     }
@@ -267,7 +269,7 @@ public class TSBM {
                             //Thread.sleep(100);
                             continue;
                         }
-                        adapter.insertData(data);
+                        nums[2] += adapter.insertData(data);
                     }catch (InterruptedException e){
                         e.printStackTrace();
                     }
@@ -285,7 +287,11 @@ public class TSBM {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        return "";
+
+        return "Load test: " + System.lineSeparator() +
+            "Insert Total " + nums[0] + "data points." + System.lineSeparator() +
+            "Used Time (ms) :" + (nums[1] + nums[2]) + System.lineSeparator() +
+            " Avg (ms):" + (nums[1] + nums[2])/nums[0];
     }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
