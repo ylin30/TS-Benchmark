@@ -218,6 +218,7 @@ public class TSBM {
                     for (int farmId = 1; farmId <= sumFarm; farmId++) {
                         dataBuffer.append(generateData(start, end, farmId, 50));
                         count++;
+                        nums[0] += 1;
                         if (count == 100) {
                             try {
                                 queue.put(dataBuffer.toString());
@@ -226,7 +227,7 @@ public class TSBM {
                             }
                             dataBuffer.setLength(0);
                             count = 0;
-                            nums[0] += 1;
+
                             long endTime = System.nanoTime();
                             long costTime = (endTime - startTime) / 1000000000;
                             System.out.println("Insert Total " + nums[0] + "(25万点), Used Time :" + costTime + "s");
