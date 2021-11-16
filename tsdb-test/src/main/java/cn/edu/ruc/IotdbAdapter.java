@@ -2,6 +2,7 @@ package cn.edu.ruc;
 
 import cn.edu.ruc.adapter.BaseAdapter;
 import cn.edu.ruc.start.TSBM;
+import javafx.util.Pair;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -62,18 +63,19 @@ public class IotdbAdapter implements BaseAdapter {
         }
     }
 
-    public long insertData(String data) {
+    public Pair<Long, Integer> insertData(String data) {
         String[] rows = data.split(TSBM.LINE_SEPARATOR);
         StringBuilder sc = new StringBuilder();
         List<String> sqls = new ArrayList<String>();
         Long costTime = 0L;
+        int totalUpdateCount = 0;
         Connection connection = getConnection();
         Statement statement = null;
         try {
             statement = connection.createStatement();
         } catch (Exception e) {
             e.printStackTrace();
-            return -1;
+            return null;
         }
         System.out.println("start insert " + rows.length * 50 + "Points");
         for (String row : rows) {
@@ -102,20 +104,28 @@ public class IotdbAdapter implements BaseAdapter {
                 }
 
                 long startTime = System.nanoTime();
-                statement.executeBatch();
+                int[] updateCounts = statement.executeBatch();
                 long endTime = System.nanoTime();
                 costTime += (endTime - startTime) / 1000 / 1000;
+
+                for(int i = 0; i < updateCounts.length; i++){
+                    // If update succeeds, sum up total count.
+                    if (updateCounts[i] >0) {
+                        totalUpdateCount += updateCounts[i];
+                    }
+                }
+
                 statement.clearBatch();
                 sqls.clear();
             } catch (Exception e) {
                 e.printStackTrace();
                 closeConnection(connection);
                 closeStatement(statement);
-                return -1;
+                return null;
             }
         }
         closeStatement(statement);
-        return costTime;
+        return new Pair(costTime, totalUpdateCount);
     }
 
     public long query1(long start, long end) {

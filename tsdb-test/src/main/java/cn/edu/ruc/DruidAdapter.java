@@ -4,6 +4,7 @@ import cn.edu.ruc.adapter.BaseAdapter;
 import cn.edu.ruc.start.TSBM;
 
 import com.alibaba.fastjson.JSON;
+import javafx.util.Pair;
 import okhttp3.*;
 import java.sql.Date;
 import java.text.DateFormat;
@@ -30,19 +31,23 @@ public class DruidAdapter implements BaseAdapter {
 
     private long exeOkHttpRequest(Request request) {
         long costTime = 0L;
-        Response response;
+        Response response = null;
         OkHttpClient client = getOkHttpClient();
         try {
             long startTime1 = System.nanoTime();
             response = client.newCall(request).execute();
-            int code = response.code();
-            System.out.println("code " + code +", "+ response.body().string());
-            response.close();
+            if (!response.isSuccessful()) {
+                int code = response.code();
+                System.out.println("code " + code + ", " + response.body().string());
+                return FAILURE;
+            }
             long endTime1 = System.nanoTime();
             costTime = endTime1 - startTime1;
         } catch (Exception e) {
             e.printStackTrace();
-            return -1;
+            return FAILURE;
+        } finally {
+            if (response != null) response.close();
         }
         return costTime / 1000 / 1000;
     }
@@ -53,12 +58,14 @@ public class DruidAdapter implements BaseAdapter {
         queryURL = "http://" + ip + queryURL;
     }
 
-    public long insertData(String data) {
+    public Pair<Long, Integer> insertData(String data) {
         String[] rows = data.split(TSBM.LINE_SEPARATOR);
         StringBuilder sc = new StringBuilder();
         List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
         int turn = 0;
         long costTime = 0L;
+        int totalUpdateCount = 0;
+        int currUpdateCount = 0;
         for (String row : rows) {
             String[] sensors = row.split(TSBM.SEPARATOR);
             if (sensors.length < 3) {//过滤空行
@@ -73,6 +80,7 @@ public class DruidAdapter implements BaseAdapter {
             df.setTimeZone(TimeZone.getTimeZone("UTC"));
             String time = df.format(new Date(Long.valueOf(timestamp)));
             for (int index = 3; index < length; index++) {
+                currUpdateCount++;
                 Map<String, Object> pointMap = new HashMap<>();
                 String value = sensors[index];
                 String sensorName = "s" + (index - 2);
@@ -96,13 +104,18 @@ public class DruidAdapter implements BaseAdapter {
                             .build();
                 } catch (Exception e) {
                     e.printStackTrace();
-                    break;
+                    continue;
                 }
-                costTime += exeOkHttpRequest(request);
+                long respTimeMs = exeOkHttpRequest(request);
+                if (respTimeMs != FAILURE) {
+                    costTime += respTimeMs;
+                    totalUpdateCount += currUpdateCount;
+                }
+                currUpdateCount = 0;
                 list.clear();
             }
         }
-        return costTime;
+        return new Pair(costTime, totalUpdateCount);
     }
 
     @Override

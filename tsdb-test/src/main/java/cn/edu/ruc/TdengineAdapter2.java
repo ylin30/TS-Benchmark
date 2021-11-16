@@ -2,6 +2,7 @@ package cn.edu.ruc;
 
 import cn.edu.ruc.adapter.BaseAdapter;
 import cn.edu.ruc.start.TSBM;
+import javafx.util.Pair;
 import com.taosdata.jdbc.TSDBDriver;
 
 import java.sql.*;
@@ -65,12 +66,14 @@ public class TdengineAdapter2 implements BaseAdapter {
     }
 
     @Override
-    public long insertData(String data) {
+    public Pair<Long, Integer> insertData(String data) {
         String[] rows = data.split(TSBM.LINE_SEPARATOR);
         StringBuffer sqls = new StringBuffer();
         String sqlFormat = "%s USING metrics TAGS (\"%s\",\"%s\",\"%s\") VALUES (%s) ";
         int count = 0;
         long costTime = 0L;
+        int totalUpdateCount =0;
+        int currUpdateCount = 0;
         for (String row : rows) {
             String[] sensors = row.split(TSBM.SEPARATOR);
             if (sensors.length < 3) {//过滤空行
@@ -83,6 +86,7 @@ public class TdengineAdapter2 implements BaseAdapter {
             StringBuffer values = new StringBuffer();
             int length = sensors.length;
             for (int index = 3; index < length; index++) {
+                currUpdateCount ++;
                 String sensorName = "s" + (index - 2);
                 String value = sensors[index];
                 String tbname = String.format("%s%s%s", farmId, deviceId,sensorName);
@@ -105,14 +109,22 @@ public class TdengineAdapter2 implements BaseAdapter {
                 if (connection != null) {
                     try {
                         Statement stmt = connection.createStatement();
-                        stmt.execute(SQL);
+                        boolean success = stmt.execute(SQL);
                         sqls.setLength(0);
                         stmt.close();
-                        long endTime = System.nanoTime();
-                        costTime += (endTime - startTime)/1000/1000;
+                        if (success) {
+                            long endTime = System.nanoTime();
+                            costTime += (endTime - startTime) / 1000 / 1000;
+
+                            // We assume each row has same number of sensors.
+                            totalUpdateCount += currUpdateCount;
+                        }
                     } catch (SQLException throwables) {
                         throwables.printStackTrace();
                     }
+
+                    // Reset
+                    currUpdateCount = 0;
                 }
             }
         }
@@ -124,16 +136,20 @@ public class TdengineAdapter2 implements BaseAdapter {
                 try {
                     long startTime = System.nanoTime();
                     Statement stmt = connection.createStatement();
-                    stmt.execute(SQL);
+                    boolean success = stmt.execute(SQL);
                     stmt.close();
-                    long endTime = System.nanoTime();
-                    costTime += (endTime - startTime)/1000/1000;
+                    if (success) {
+                        long endTime = System.nanoTime();
+                        costTime += (endTime - startTime) / 1000 / 1000;
+                        // We assume each row has same number of sensors.
+                        totalUpdateCount += currUpdateCount;
+                    }
                 } catch (SQLException throwables) {
                     throwables.printStackTrace();
                 }
             }
         }
-        return costTime;
+        return new Pair(costTime,totalUpdateCount);
     }
 
     private void closeStatement(Statement statement) {

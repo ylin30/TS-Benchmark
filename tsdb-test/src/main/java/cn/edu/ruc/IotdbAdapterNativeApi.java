@@ -2,6 +2,7 @@ package cn.edu.ruc;
 
 import cn.edu.ruc.adapter.BaseAdapter;
 import cn.edu.ruc.start.TSBM;
+import javafx.util.Pair;
 import org.apache.iotdb.session.Session;
 import org.apache.iotdb.session.SessionDataSet;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
@@ -40,12 +41,12 @@ public class IotdbAdapterNativeApi implements BaseAdapter {
         typesList.clear();
     }
 
-    public long insertData(String data) {
+    public Pair<Long, Integer> insertData(String data) {
         String[] rows = data.split(TSBM.LINE_SEPARATOR);
         Long costTime = 0L;
         Long cost = 0L;
         System.out.println("start insert " + rows.length * 50 + " Points");
-        Long count = 0L;
+        int totalCount = 0;
         String format = "%s.%s.%s";
         List<List<String>> measurementsList = new ArrayList<List<String>>();
         List<List<Object>> valuesList = new ArrayList<List<Object>>();
@@ -53,6 +54,7 @@ public class IotdbAdapterNativeApi implements BaseAdapter {
         List<Long> timestamps = new ArrayList<Long>();
         List<String> paths = new ArrayList<String>();
         int turn = 0;
+
         for (String row : rows) {
             String[] sensors = row.split(TSBM.SEPARATOR);
             if (sensors.length < 3) {//过滤空行
@@ -63,8 +65,10 @@ public class IotdbAdapterNativeApi implements BaseAdapter {
             String deviceId = sensors[2];
             String path = String.format(format, rootSeries, farmId, deviceId);
 
+            int currCount = 0;
             int length = sensors.length;
             for (int index = 3; index < length; index++) {
+                currCount++;
                 List<String> measurements = new ArrayList<>();
                 List<TSDataType> types = new ArrayList<>();
                 List<Object> values = new ArrayList<>();
@@ -85,19 +89,22 @@ public class IotdbAdapterNativeApi implements BaseAdapter {
                 long startTime = System.nanoTime();
                 try {
                     session.insertRecords(paths, timestamps, measurementsList, typesList, valuesList);
+
+                    // success. Add cost time and success count.
+                    long endTime = System.nanoTime();
+                    cost = (endTime - startTime) / 1000 / 1000;
+                    System.out.println("Insert "+valuesList.size()+" Points, Use Time: " + cost + "ms");
+                    costTime += cost;
+                    totalCount += currCount;
                 } catch (IoTDBConnectionException e) {
                     e.printStackTrace();
                 } catch (StatementExecutionException e) {
                     e.printStackTrace();
                 }
-                long endTime = System.nanoTime();
-                cost = (endTime - startTime) / 1000 / 1000;
-                System.out.println("Insert "+valuesList.size()+" Points, Use Time: " + cost + "ms");
                 clearAll(measurementsList, valuesList, timestamps, paths, typesList);
-                costTime += cost;
             }
         }
-        return costTime;
+        return new Pair(costTime, totalCount);
     }
 
     public long query1(long start, long end) {

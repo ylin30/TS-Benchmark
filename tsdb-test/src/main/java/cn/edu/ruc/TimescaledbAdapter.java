@@ -2,6 +2,7 @@ package cn.edu.ruc;
 
 import cn.edu.ruc.adapter.BaseAdapter;
 import cn.edu.ruc.start.TSBM;
+import javafx.util.Pair;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -55,7 +56,7 @@ public class TimescaledbAdapter implements BaseAdapter {
         }
     }
 
-    public long insertData(String data) {
+    public Pair<Long, Integer> insertData(String data) {
         String[] rows = data.split(TSBM.LINE_SEPARATOR);
         StringBuilder sc = new StringBuilder();
         List<String> sqls = new ArrayList<String>();
@@ -102,24 +103,32 @@ public class TimescaledbAdapter implements BaseAdapter {
         Connection connection = getConnection();
         Statement statement = null;
         Long costTime = 0L;
+        int totalUpdateCount = 0;
         try {
             statement = connection.createStatement();
             for (String sql : sqls) {
                 statement.addBatch(sql);
             }
             long startTime = System.nanoTime();
-            statement.executeBatch();
+            int[] updateCounts = statement.executeBatch();
             long endTime = System.nanoTime();
             costTime = endTime - startTime;
+
+            for(int i = 0; i < updateCounts.length; i++){
+                // If update succeeds, sum up total count.
+                if (updateCounts[i] >0) {
+                    totalUpdateCount += updateCounts[i];
+                }
+            }
             statement.clearBatch();
         } catch (Exception e) {
             e.printStackTrace();
-            return -1;
+            return null;
         } finally {
             closeStatement(statement);
             closeConnection(connection);
         }
-        return costTime / 1000 / 1000;
+        return new Pair(costTime / 1000 / 1000, totalUpdateCount);
     }
 
     public long query1(long start, long end) {

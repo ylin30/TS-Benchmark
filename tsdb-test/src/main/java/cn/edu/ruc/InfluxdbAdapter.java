@@ -2,6 +2,7 @@ package cn.edu.ruc;
 
 import cn.edu.ruc.adapter.BaseAdapter;
 import cn.edu.ruc.start.TSBM;
+import javafx.util.Pair;
 import okhttp3.*;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Query;
@@ -31,18 +32,24 @@ public class InfluxdbAdapter implements BaseAdapter {// ctrl+i 快速实现接�
 
     private long exeOkHttpRequest(Request request) {
         long costTime = 0L;
-        Response response;
+        Response response = null;
         OkHttpClient client = getOkHttpClient();
         try {
             long startTime1 = System.nanoTime();
             response = client.newCall(request).execute();
             int code = response.code();
-            response.close();
+            if (!response.isSuccessful()) {
+                System.out.println("Fail with code " + code);
+                return FAILURE;
+            }
             long endTime1 = System.nanoTime();
             costTime = endTime1 - startTime1;
         } catch (Exception e) {
             e.printStackTrace();
-            return -1;
+            return FAILURE;
+        } finally {
+            if (response != null)
+                response.close();
         }
         return costTime / 1000 / 1000;
     }
@@ -116,9 +123,10 @@ public class InfluxdbAdapter implements BaseAdapter {// ctrl+i 快速实现接�
         INFLUXDB.createDatabase(dbName);
     }
 
-    public long insertData(String data) {
+    public Pair<Long, Integer> insertData(String data) {
         String[] rows = data.split(TSBM.LINE_SEPARATOR);
         StringBuilder sc = new StringBuilder();
+        int totalCount = 0;
         for (String row : rows) {
             String[] sensors = row.split(TSBM.SEPARATOR);
             if (sensors.length < 3) {//过滤空行
@@ -129,6 +137,7 @@ public class InfluxdbAdapter implements BaseAdapter {// ctrl+i 快速实现接�
             String deviceId = sensors[2];
             int length = sensors.length;
             for (int index = 3; index < length; index++) {
+                totalCount ++;
                 String value = sensors[index];
                 String sensorName = "s" + (index - 2);
                 sc.append("sensor");
@@ -156,6 +165,9 @@ public class InfluxdbAdapter implements BaseAdapter {// ctrl+i 快速实现接�
                 .url(writeURL)
                 .post(RequestBody.create(MEDIA_TYPE_TEXT, sc.toString()))
                 .build();
-        return exeOkHttpRequest(request);
+        long timeMs = exeOkHttpRequest(request);
+        return (timeMs == BaseAdapter.FAILURE) ?
+            null :
+            new Pair(timeMs, totalCount);
     }
 }

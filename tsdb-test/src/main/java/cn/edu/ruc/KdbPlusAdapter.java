@@ -5,6 +5,8 @@ import cn.edu.ruc.start.TSBM;
 import cn.edu.ruc.kx.c;
 import java.io.IOException;
 import cn.edu.ruc.kx.c.KException;
+import javafx.util.Pair;
+
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -53,7 +55,7 @@ public class KdbPlusAdapter implements BaseAdapter {
     }
 
     @Override
-    public long insertData(String data) {
+    public Pair<Long, Integer> insertData(String data) {
         c Conn = getDefaultConnection();
 
         String[] rows = data.split(TSBM.LINE_SEPARATOR);
@@ -61,6 +63,8 @@ public class KdbPlusAdapter implements BaseAdapter {
         List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
         int turn = 0;
         long costTime = 0L;
+        int totalUpdateCount =0;
+        int currUpdateCount = 0;
         String[] columnNames = new String[]{"time", "farmId", "deviceId", "sensorName", "sValue"}; //表头
         LinkedList<Timestamp> dateList = new LinkedList<>();
         LinkedList<String> farmIdList = new LinkedList<>();
@@ -73,7 +77,7 @@ public class KdbPlusAdapter implements BaseAdapter {
                 continue;
             }
             for (int index = 3; index < sensors.length; index++) {
-
+                currUpdateCount ++;
                 dateList.add(new Timestamp(Long.valueOf(sensors[0]))); // sensors[0] : timestamp
                 farmIdList.add(sensors[1]); // sensors[1] : farmId
                 deviceIdList.add(sensors[2]); // sensors[2] : deviceId
@@ -101,6 +105,8 @@ public class KdbPlusAdapter implements BaseAdapter {
                     long endTime = System.nanoTime();
                     costTime += (endTime - startTime) / 1000 / 1000;
 
+                    totalUpdateCount += currUpdateCount;
+
                     //clear
                     dateList.clear();
                     farmIdList.clear();
@@ -110,10 +116,13 @@ public class KdbPlusAdapter implements BaseAdapter {
                 } catch (IOException | KException e) {
                     e.printStackTrace();
                 }
+
+                // Reset even if execution fails.
+                currUpdateCount = 0;
             }
         }
         closeConnection(Conn);
-        return costTime;
+        return new Pair(costTime, totalUpdateCount);
     }
 
     public long execQuery(String qSql) {

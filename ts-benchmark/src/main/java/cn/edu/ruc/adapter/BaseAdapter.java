@@ -1,16 +1,20 @@
 package cn.edu.ruc.adapter;
 
+import javafx.util.Pair;
+
 /**
  * modified by rainmaple
  * adapter base interface
  * 适配器基础类
  */
 public interface BaseAdapter {
+    public static int FAILURE = -1;
+
     public void initConnect(String ip, String port, String user, String password);
     /**
-     * @return timeout ,if request failed, please return -1;
+     * @return <response time, success count>,if request failed, please return -1;
      */
-    public long insertData(String data);
+    public Pair<Long, Integer> insertData(String data);
 
     /**
      * the method query1

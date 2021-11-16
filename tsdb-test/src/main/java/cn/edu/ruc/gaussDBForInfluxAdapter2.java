@@ -2,6 +2,7 @@ package cn.edu.ruc;
 
 import cn.edu.ruc.adapter.BaseAdapter;
 import cn.edu.ruc.start.TSBM;
+import javafx.util.Pair;
 import okhttp3.*;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Query;
@@ -178,11 +179,13 @@ public class gaussDBForInfluxAdapter2 implements BaseAdapter {// ctrl+i 快速�
         }
     }
     */
-    public long insertData(String data) {
+    public Pair<Long, Integer> insertData(String data) {
         String[] rows = data.split(TSBM.LINE_SEPARATOR);
         StringBuilder sc = new StringBuilder();
         BatchPoints batchPoints = BatchPoints.database(dbName).build();
         long costTime = 0L;
+        int totalUpdateCount = 0;
+        int currUpdateCount = 0;
         int turn = 0;
         for (String row : rows) {
             String[] sensors = row.split(TSBM.SEPARATOR);
@@ -199,6 +202,7 @@ public class gaussDBForInfluxAdapter2 implements BaseAdapter {// ctrl+i 快速�
                     .tag("d", deviceId);
 
             for (int index = 3; index < length; index++) {
+                currUpdateCount++;
                 String value = sensors[index];
                 String sensorName = "s" + (index - 2);
                 builder.addField(sensorName, Float.valueOf(value));
@@ -212,6 +216,8 @@ public class gaussDBForInfluxAdapter2 implements BaseAdapter {// ctrl+i 快速�
                 batchPoints = BatchPoints.database(dbName).build();
                 long endTime = System.nanoTime();
                 costTime += (endTime - startTime) / 1000000;
+                totalUpdateCount += currUpdateCount;
+                currUpdateCount = 0;
             }
         }
         if (turn != 0) {
@@ -219,7 +225,8 @@ public class gaussDBForInfluxAdapter2 implements BaseAdapter {// ctrl+i 快速�
             INFLUXDB.write(batchPoints);
             long endTime = System.nanoTime();
             costTime += (endTime - startTime) / 1000000;
+            totalUpdateCount += currUpdateCount;
         }
-        return costTime;
+        return new Pair(costTime, totalUpdateCount);
     }
 }

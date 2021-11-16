@@ -3,6 +3,7 @@ package cn.edu.ruc.start;
 import cn.edu.ruc.adapter.BaseAdapter;
 import cn.edu.ruc.utils.FileUtils;
 import cn.edu.ruc.utils.ValueUtils;
+import javafx.util.Pair;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -204,8 +205,12 @@ public class TSBM {
         long importStart = IMPORT_START;// 2018-01-01 00:00:00
         long importEnd = IMPORT_START + IMPORT_DATA_HOURS * 3600 * 1000;
         final Boolean[] out = {false};
-        // 0: total count; 1: total insert time (ms) in thread 2; 2: total insert time (ms) in thread 3
-        final long[] nums= {0L,0L,0L};
+        // 0: total count;
+        // 1: total successful inserts in thread 2;
+        // 2: total insert time (ms) in thread 2;
+        // 3: total successful inserts in thread 3;
+        // 4: total insert time (ms) in thread 3
+        final long[] nums= {0L,0L,0L,0L,0L};
 
         Thread th1 = new Thread() {
             public void run() {
@@ -230,7 +235,7 @@ public class TSBM {
 
                             long endTime = System.nanoTime();
                             long costTime = (endTime - startTime) / 1000000000;
-                            System.out.println("Insert Total " + nums[0] + "(25万点), Used Time :" + costTime + "s");
+                            System.out.println("Prepared Total batch " + nums[0] + "(25万点), Used Time :" + costTime + "s");
                         }
                     }
                 }
@@ -250,7 +255,21 @@ public class TSBM {
                             //Thread.sleep(100);
                             continue;
                         }
-                        nums[1] += adapter.insertData(data);
+
+                        // Try max 5 times if failure.
+                        int i = 0;
+                        Pair<Long, Integer> timeMsInsertCount = null;
+                        do {
+                            Thread.sleep(10^i - 1);
+
+                            timeMsInsertCount = adapter.insertData(data);
+                        } while (timeMsInsertCount == null && i++ < 5);
+
+                        // Only count those successful insertions.
+                        if (timeMsInsertCount != null) {
+                            nums[1] += timeMsInsertCount.getValue();
+                            nums[2] += timeMsInsertCount.getKey();
+                        }
                     }catch (InterruptedException e){
                         e.printStackTrace();
                     }
@@ -270,7 +289,20 @@ public class TSBM {
                             //Thread.sleep(100);
                             continue;
                         }
-                        nums[2] += adapter.insertData(data);
+                        // Try max 5 times if failure.
+                        int i = 0;
+                        Pair<Long, Integer> timeMsInsertCount = null;
+                        do {
+                            Thread.sleep(10^i - 1);
+
+                            timeMsInsertCount = adapter.insertData(data);
+                        } while (timeMsInsertCount == null && i++ < 5);
+
+                        // Only count those successful insertions.
+                        if (timeMsInsertCount != null) {
+                            nums[3] += timeMsInsertCount.getValue();
+                            nums[4] += timeMsInsertCount.getKey();
+                        }
                     }catch (InterruptedException e){
                         e.printStackTrace();
                     }
@@ -289,10 +321,13 @@ public class TSBM {
             e.printStackTrace();
         }
 
-        return "Load test: " + System.lineSeparator() +
-            "Insert Total " + nums[0] + "data points." + System.lineSeparator() +
-            "Used Time (ms) :" + (nums[1] + nums[2]) + System.lineSeparator() +
-            " Avg (ms):" + (nums[1] + nums[2])/nums[0];
+        return "### Load test: " + System.lineSeparator() +
+            "   Generate total batch: " + nums[0] + " data points." + System.lineSeparator() +
+            "   Successful insertions: " + (nums[1] + nums[3]) + " data points." + System.lineSeparator() +
+            "   Used Time (ms) :" + (nums[2] + nums[4]) + System.lineSeparator() +
+            "   Avg (ms):" + (nums[2] + nums[4])/(nums[1] + nums[3]) +
+            "   Throughput (points/second):" + (long)((nums[1] + nums[3])/(nums[2] + nums[4])/1000.0);
+
     }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -314,8 +349,9 @@ public class TSBM {
             int batchMax = MAX_BATCH_NUM;
             int row = 50;
             ExecutorService pool = Executors.newFixedThreadPool(farm);
-            CompletionService<Long> cs = new ExecutorCompletionService<Long>(pool);
+            CompletionService<Pair<Long, Integer>> cs = new ExecutorCompletionService<>(pool);
             long sumPps = 0L;
+            int sumInserts = 0;
             //每个风场，每个7s发送一次数据
             Map<Integer, Integer> thinkTimeMap = new HashMap<Integer, Integer>();
             for (int cFarm = 1; cFarm <= farm; cFarm++) {
@@ -328,9 +364,12 @@ public class TSBM {
                     String path = basePath + "/farm/" + farm + "/" + batch + "/" + cFarm;
                     executeAppend(adapter, cs, path, thinkTimeMap.get(cFarm));
                 }
-                long pps = calcThroughtPut(row, farm, cs);
-                sumPps += pps;
-                System.out.println("append 1." + farm + "." + batch + " finished " + pps);
+                Pair<Long, Integer> throughtPutInsertCount = calcThroughtPut(row, farm, cs);
+                sumPps += throughtPutInsertCount.getKey();
+                sumInserts += throughtPutInsertCount.getValue();
+                System.out.println("append 1." + farm + "." + batch +
+                    " finished. throughput: " + throughtPutInsertCount.getKey() +
+                    " success inserts: " + throughtPutInsertCount.getValue());
                 long endTime = System.currentTimeMillis();
                 long costTime = endTime - startTime;
                 // 每七秒执行一次
@@ -341,6 +380,8 @@ public class TSBM {
             appendResultBuffer.append(farm);
             appendResultBuffer.append("\t");
             appendResultBuffer.append(sumPps / batchMax);
+            appendResultBuffer.append("\t");
+            appendResultBuffer.append(sumInserts);
             appendResultBuffer.append(LINE_SEPARATOR);
             pool.shutdown();
         }
@@ -353,8 +394,9 @@ public class TSBM {
             int batchMax = MAX_BATCH_NUM;
             int farm = 8;//线程数
             ExecutorService pool = Executors.newFixedThreadPool(farm);
-            CompletionService<Long> cs = new ExecutorCompletionService<Long>(pool);
+            CompletionService<Pair<Long, Integer>> cs = new ExecutorCompletionService<>(pool);
             long sumPps = 0L;
+            int sumInserts =0;
             //每个风场，每个7s发送一次数据
             Map<Integer, Integer> thinkTimeMap = new HashMap<Integer, Integer>();
             for (int cFarm = 1; cFarm <= farm; cFarm++) {
@@ -367,9 +409,13 @@ public class TSBM {
                     String path = basePath + "/device/" + row + "/" + batch + "/" + cFarm;
                     executeAppend(adapter, cs, path, thinkTimeMap.get(cFarm));
                 }
-                long pps = calcThroughtPut(row, farm, cs);
-                sumPps += pps;
-                System.out.println("append 2." + row + "." + batch + " finished " + pps);
+                Pair<Long, Integer> throughtPutInsertCount = calcThroughtPut(row, farm, cs);
+                sumPps += throughtPutInsertCount.getKey();
+                sumInserts += throughtPutInsertCount.getValue();
+                System.out.println("append 2." + row + "." + batch +
+                    " finished. throughput: " + throughtPutInsertCount.getKey() +
+                    " success inserts: " + throughtPutInsertCount.getValue());
+
                 long endTime = System.currentTimeMillis();
                 long costTime = endTime - startTime;
                 // 每七秒执行一次
@@ -380,6 +426,8 @@ public class TSBM {
             appendResultBuffer.append(row);
             appendResultBuffer.append("\t");
             appendResultBuffer.append(sumPps / batchMax);
+            appendResultBuffer.append("\t");
+            appendResultBuffer.append(sumInserts);
             appendResultBuffer.append(LINE_SEPARATOR);
             pool.shutdown();
         }
@@ -395,16 +443,19 @@ public class TSBM {
      * @param farm 风场数
      * @param cs   任务
      */
-    private static long calcThroughtPut(int row, int farm, CompletionService<Long> cs) {
+    private static Pair<Long, Integer> calcThroughtPut(int row, int farm, CompletionService<Pair<Long, Integer>> cs) {
         long points = farm * row * MAX_SENSOR;//50个设备，50个传感器
-        double avgTime = calAvgTimeout(farm, cs);
+        // Not all data points are successfully inserted.
+
+        Pair<Long, Integer> sumRespTimeSecAndSuccessCount = calAvgTimeout(farm, cs);
         long pps = 0L;
-        if (avgTime == 0) {
-            pps = 0L;
-        } else {
-            pps = (long) (points / avgTime);
+        int successInsertCount = 0;
+        if (sumRespTimeSecAndSuccessCount != null) {
+            successInsertCount = sumRespTimeSecAndSuccessCount.getValue();
+            long sumRespTimeMs = sumRespTimeSecAndSuccessCount.getKey();
+            pps = (long) (successInsertCount / sumRespTimeMs / 1000.0);
         }
-        return pps;
+        return new Pair(pps, successInsertCount);
     }
 
     /**
@@ -414,23 +465,27 @@ public class TSBM {
      * @param cs      执行线程
      * @param path    数据来源路径
      */
-    private static void executeAppend(BaseAdapter adapter, CompletionService<Long> cs, String path) {
-        cs.submit(new Callable<Long>() {
-            @Override
-            public Long call() throws Exception {
-                String data = FileUtils.read(path);
-                return adapter.insertData(data);
-            }
-        });
+    private static void executeAppend(BaseAdapter adapter, CompletionService<Pair<Long, Integer>> cs, String path) {
+        executeAppend(adapter, cs, path, 0);
     }
 
-    private static void executeAppend(BaseAdapter adapter, CompletionService<Long> cs, String path, final int sleepTime) {
-        cs.submit(new Callable<Long>() {
+    private static void executeAppend(BaseAdapter adapter, CompletionService<Pair<Long, Integer>> cs, String path, final int sleepTime) {
+        cs.submit(new Callable<Pair<Long, Integer>>() {
             @Override
-            public Long call() throws Exception {
+            public Pair<Long, Integer> call() throws Exception {
                 String data = FileUtils.read(path);
                 Thread.currentThread().sleep(sleepTime);
-                return adapter.insertData(data);
+
+                // Try max 5 times if failure.
+                int i = 0;
+                Pair<Long, Integer> timeMsInsertCount = null;
+                do {
+                    Thread.sleep(10^i - 1);
+
+                    timeMsInsertCount = adapter.insertData(data);
+                } while (timeMsInsertCount == null && i++ < 5);
+
+                return timeMsInsertCount;
             }
         });
     }
@@ -440,26 +495,27 @@ public class TSBM {
      *
      * @param farm
      * @param cs
-     * @return avg timeout 单位为s
+     * @return total response time(ms), data points inserted successfully
      */
-    private static double calAvgTimeout(int farm, CompletionService<Long> cs) {
-        double sumTimeout = 0;
-        int successTime = 0;
+    private static Pair<Long, Integer> calAvgTimeout(int farm, CompletionService<Pair<Long, Integer>> cs) {
+        Long sumRespTimeMs = 0L;
+        int successCount = 0;
         try {
             for (int index = 1; index <= farm; index++) {
-                Long timeout = cs.take().get();
-                if (timeout > 0) {
-                    sumTimeout += timeout;
-                    successTime++;
+                Pair<Long, Integer> timeMsCount = cs.take().get();
+                if (timeMsCount != null) {
+                    // if success
+                    sumRespTimeMs += timeMsCount.getKey();
+                    successCount += timeMsCount.getValue();
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        if (successTime == 0) {
-            return 0;
+        if (successCount == 0) {
+            return null;
         } else {
-            return sumTimeout / successTime / 1000.0;
+            return new Pair(sumRespTimeMs, successCount);
         }
 
     }
