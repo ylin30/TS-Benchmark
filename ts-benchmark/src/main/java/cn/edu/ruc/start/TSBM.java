@@ -323,7 +323,8 @@ public class TSBM {
 
         return "### Load test: " + System.lineSeparator() +
             "   Generate total batch: " + nums[0] + " data points." + System.lineSeparator() +
-            "   Successful insertions: " + (nums[1] + nums[3]) + " data points." + System.lineSeparator() +
+            "   Successful insertions: " + (nums[1] + nums[3]) + String.format("(%.2f%%)", (100.0*(nums[1] + nums[3])/nums[0])) +
+            " data points." + System.lineSeparator() +
             "   Used Time (ms) :" + (nums[2] + nums[4]) + System.lineSeparator() +
             "   Avg (ms):" + (nums[2] + nums[4])/(nums[1] + nums[3]) +
             "   Throughput (points/second):" + (long)((nums[1] + nums[3])/(nums[2] + nums[4])/1000.0);
@@ -375,13 +376,20 @@ public class TSBM {
                 // 每七秒执行一次
                 sleep(sleepTime - costTime > 0 ? sleepTime - costTime : 1);
             }
+
+            long totalPoints = farm * row * MAX_SENSOR;//50个设备，50个传感器
+
             appendResultBuffer.append("farm");
             appendResultBuffer.append("\t");
             appendResultBuffer.append(farm);
             appendResultBuffer.append("\t");
             appendResultBuffer.append(sumPps / batchMax);
             appendResultBuffer.append("\t");
+            appendResultBuffer.append(totalPoints);
+            appendResultBuffer.append("\t");
             appendResultBuffer.append(sumInserts);
+            appendResultBuffer.append("\t");
+            appendResultBuffer.append(String.format("%.2f%%", 100.0*sumInserts/totalPoints));
             appendResultBuffer.append(LINE_SEPARATOR);
             pool.shutdown();
         }
@@ -421,13 +429,20 @@ public class TSBM {
                 // 每七秒执行一次
                 sleep(sleepTime - costTime > 0 ? sleepTime - costTime : 1);
             }
+
+            long totalPoints = farm * row * MAX_SENSOR;//50个设备，50个传感器
+
             appendResultBuffer.append("device");
             appendResultBuffer.append("\t");
             appendResultBuffer.append(row);
             appendResultBuffer.append("\t");
             appendResultBuffer.append(sumPps / batchMax);
             appendResultBuffer.append("\t");
+            appendResultBuffer.append(totalPoints);
+            appendResultBuffer.append("\t");
             appendResultBuffer.append(sumInserts);
+            appendResultBuffer.append("\t");
+            appendResultBuffer.append(String.format("%.2f%%", 100.0*sumInserts/totalPoints));
             appendResultBuffer.append(LINE_SEPARATOR);
             pool.shutdown();
         }
