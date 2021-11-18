@@ -166,6 +166,8 @@ public class InfluxdbAdapter implements BaseAdapter {// ctrl+i 快速实现接�
                 .post(RequestBody.create(MEDIA_TYPE_TEXT, sc.toString()))
                 .build();
         long timeMs = exeOkHttpRequest(request);
+
+        // System.out.println("Influxdb insert " +totalCount+" data points in " + timeMs + " ms");
         return (timeMs == BaseAdapter.FAILURE) ?
             null :
             new Pair(timeMs, totalCount);

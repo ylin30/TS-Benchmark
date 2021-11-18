@@ -223,10 +223,10 @@ public class TSBM {
                     for (int farmId = 1; farmId <= sumFarm; farmId++) {
                         dataBuffer.append(generateData(start, end, farmId, 50));
                         count++;
-                        nums[0] += 1;
                         if (count == 100) {
                             try {
                                 queue.put(dataBuffer.toString());
+                                nums[0] += 1;
                             }catch (InterruptedException e){
                                 e.printStackTrace();
                             }
@@ -235,7 +235,7 @@ public class TSBM {
 
                             long endTime = System.nanoTime();
                             long costTime = (endTime - startTime) / 1000000000;
-                            System.out.println("Prepared Total batch " + nums[0] + "(25万点), Used Time :" + costTime + "s");
+                            System.out.println("Prepared Total batch " + nums[0] + "(Each batch 2farms*50rows*50sensors), Used Time :" + costTime + "s");
                         }
                     }
                 }
@@ -246,7 +246,7 @@ public class TSBM {
         Thread th2 = new Thread() {
             public void run() {
                 while (true) {
-                    if (out[0]) {
+                    if (out[0] && queue.isEmpty()) {
                         break;
                     }
                     try {
@@ -260,7 +260,7 @@ public class TSBM {
                         int i = 0;
                         Pair<Long, Integer> timeMsInsertCount = null;
                         do {
-                            Thread.sleep(10^i - 1);
+                            Thread.sleep((long)Math.pow(10,i) - 1);
 
                             timeMsInsertCount = adapter.insertData(data);
                         } while (timeMsInsertCount == null && i++ < 5);
@@ -280,7 +280,7 @@ public class TSBM {
         Thread th3 = new Thread() {
             public void run() {
                 while (true) {
-                    if (out[0]) {
+                    if (out[0] && queue.isEmpty()) {
                         break;
                     }
                     try {
@@ -293,7 +293,7 @@ public class TSBM {
                         int i = 0;
                         Pair<Long, Integer> timeMsInsertCount = null;
                         do {
-                            Thread.sleep(10^i - 1);
+                            Thread.sleep((long)Math.pow(10,i) - 1);
 
                             timeMsInsertCount = adapter.insertData(data);
                         } while (timeMsInsertCount == null && i++ < 5);
@@ -321,10 +321,11 @@ public class TSBM {
             e.printStackTrace();
         }
 
+        double successRate = 100.0*(nums[1] + nums[3])/(nums[0]*5000);
         return "### Load test: " + System.lineSeparator() +
-            "   Generate total batch: " + nums[0] + " data points." + System.lineSeparator() +
-            "   Successful insertions: " + (nums[1] + nums[3]) + String.format("(%.2f%%)", (100.0*(nums[1] + nums[3])/nums[0])) +
-            " data points." + System.lineSeparator() +
+            "   Generate total batch: " + nums[0] + ".(Each batch 2farms*50rows*50sensors)" + System.lineSeparator() +
+            "   Successful insertions: " + (nums[1] + nums[3]) + " data points." + System.lineSeparator() +
+            "   Success rate: " + String.format("(%.2f%%)", successRate) + System.lineSeparator() +
             "   Used Time (ms) :" + (nums[2] + nums[4]) + System.lineSeparator() +
             "   Avg (ms):" + (nums[2] + nums[4])/(nums[1] + nums[3]) +
             "   Throughput (points/second):" + (long)((nums[1] + nums[3])/(nums[2] + nums[4])/1000.0);
@@ -495,7 +496,7 @@ public class TSBM {
                 int i = 0;
                 Pair<Long, Integer> timeMsInsertCount = null;
                 do {
-                    Thread.sleep(10^i - 1);
+                    Thread.sleep((long)Math.pow(10,i) - 1);
 
                     timeMsInsertCount = adapter.insertData(data);
                 } while (timeMsInsertCount == null && i++ < 5);
