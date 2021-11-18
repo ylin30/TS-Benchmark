@@ -1,6 +1,6 @@
 package cn.edu.ruc.adapter;
 
-import javafx.util.Pair;
+import cn.edu.ruc.utils.Pair;
 
 /**
  * modified by rainmaple

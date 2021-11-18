@@ -4,7 +4,7 @@ import cn.edu.ruc.adapter.BaseAdapter;
 import cn.edu.ruc.start.TSBM;
 
 import com.alibaba.fastjson.JSON;
-import javafx.util.Pair;
+import cn.edu.ruc.utils.Pair;
 import okhttp3.*;
 import java.sql.Date;
 import java.text.DateFormat;

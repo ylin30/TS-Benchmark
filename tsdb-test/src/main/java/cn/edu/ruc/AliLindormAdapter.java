@@ -4,7 +4,7 @@ package cn.edu.ruc;
 import com.alibaba.fastjson.JSON;
 import cn.edu.ruc.adapter.BaseAdapter;
 import cn.edu.ruc.start.TSBM;
-import javafx.util.Pair;
+import cn.edu.ruc.utils.Pair;
 import okhttp3.*;
 
 import java.util.*;

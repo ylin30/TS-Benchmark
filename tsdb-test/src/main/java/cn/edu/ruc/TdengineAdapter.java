@@ -4,7 +4,7 @@ import cn.edu.ruc.adapter.BaseAdapter;
 import cn.edu.ruc.start.TSBM;
 import com.taosdata.jdbc.TSDBDriver;
 
-import javafx.util.Pair;
+import cn.edu.ruc.utils.Pair;
 
 import java.sql.*;
 import java.util.Properties;

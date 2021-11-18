@@ -3,7 +3,7 @@ package cn.edu.ruc.start;
 import cn.edu.ruc.adapter.BaseAdapter;
 import cn.edu.ruc.utils.FileUtils;
 import cn.edu.ruc.utils.ValueUtils;
-import javafx.util.Pair;
+import cn.edu.ruc.utils.Pair;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -267,8 +267,8 @@ public class TSBM {
 
                         // Only count those successful insertions.
                         if (timeMsInsertCount != null) {
-                            nums[1] += timeMsInsertCount.getValue();
-                            nums[2] += timeMsInsertCount.getKey();
+                            nums[1] += timeMsInsertCount.second;
+                            nums[2] += timeMsInsertCount.first;
                         }
                     }catch (InterruptedException e){
                         e.printStackTrace();
@@ -300,8 +300,8 @@ public class TSBM {
 
                         // Only count those successful insertions.
                         if (timeMsInsertCount != null) {
-                            nums[3] += timeMsInsertCount.getValue();
-                            nums[4] += timeMsInsertCount.getKey();
+                            nums[3] += timeMsInsertCount.second;
+                            nums[4] += timeMsInsertCount.first;
                         }
                     }catch (InterruptedException e){
                         e.printStackTrace();
@@ -366,11 +366,11 @@ public class TSBM {
                     executeAppend(adapter, cs, path, thinkTimeMap.get(cFarm));
                 }
                 Pair<Long, Integer> throughtPutInsertCount = calcThroughtPut(row, farm, cs);
-                sumPps += throughtPutInsertCount.getKey();
-                sumInserts += throughtPutInsertCount.getValue();
+                sumPps += throughtPutInsertCount.first;
+                sumInserts += throughtPutInsertCount.second;
                 System.out.println("append 1." + farm + "." + batch +
-                    " finished. throughput: " + throughtPutInsertCount.getKey() +
-                    " success inserts: " + throughtPutInsertCount.getValue());
+                    " finished. throughput: " + throughtPutInsertCount.first +
+                    " success inserts: " + throughtPutInsertCount.second);
                 long endTime = System.currentTimeMillis();
                 long costTime = endTime - startTime;
                 // 每七秒执行一次
@@ -418,11 +418,11 @@ public class TSBM {
                     executeAppend(adapter, cs, path, thinkTimeMap.get(cFarm));
                 }
                 Pair<Long, Integer> throughtPutInsertCount = calcThroughtPut(row, farm, cs);
-                sumPps += throughtPutInsertCount.getKey();
-                sumInserts += throughtPutInsertCount.getValue();
+                sumPps += throughtPutInsertCount.first;
+                sumInserts += throughtPutInsertCount.second;
                 System.out.println("append 2." + row + "." + batch +
-                    " finished. throughput: " + throughtPutInsertCount.getKey() +
-                    " success inserts: " + throughtPutInsertCount.getValue());
+                    " finished. throughput: " + throughtPutInsertCount.first +
+                    " success inserts: " + throughtPutInsertCount.second);
 
                 long endTime = System.currentTimeMillis();
                 long costTime = endTime - startTime;
@@ -466,8 +466,8 @@ public class TSBM {
         long pps = 0L;
         int successInsertCount = 0;
         if (sumRespTimeSecAndSuccessCount != null) {
-            successInsertCount = sumRespTimeSecAndSuccessCount.getValue();
-            long sumRespTimeMs = sumRespTimeSecAndSuccessCount.getKey();
+            successInsertCount = sumRespTimeSecAndSuccessCount.second;
+            long sumRespTimeMs = sumRespTimeSecAndSuccessCount.first;
             pps = (long) (successInsertCount / sumRespTimeMs / 1000.0);
         }
         return new Pair(pps, successInsertCount);
@@ -520,8 +520,8 @@ public class TSBM {
                 Pair<Long, Integer> timeMsCount = cs.take().get();
                 if (timeMsCount != null) {
                     // if success
-                    sumRespTimeMs += timeMsCount.getKey();
-                    successCount += timeMsCount.getValue();
+                    sumRespTimeMs += timeMsCount.first;
+                    successCount += timeMsCount.second;
                 }
             }
         } catch (Exception e) {

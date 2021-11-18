@@ -2,7 +2,7 @@ package cn.edu.ruc;
 
 import cn.edu.ruc.adapter.BaseAdapter;
 import cn.edu.ruc.start.TSBM;
-import javafx.util.Pair;
+import cn.edu.ruc.utils.Pair;
 import org.apache.iotdb.session.Session;
 import org.apache.iotdb.session.SessionDataSet;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;

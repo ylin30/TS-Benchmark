@@ -5,7 +5,7 @@ import cn.edu.ruc.start.TSBM;
 import cn.edu.ruc.kx.c;
 import java.io.IOException;
 import cn.edu.ruc.kx.c.KException;
-import javafx.util.Pair;
+import cn.edu.ruc.utils.Pair;
 
 import java.sql.Timestamp;
 import java.util.*;

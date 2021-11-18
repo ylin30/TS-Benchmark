@@ -2,7 +2,7 @@ package cn.edu.ruc;
 
 import cn.edu.ruc.adapter.BaseAdapter;
 import cn.edu.ruc.start.TSBM;
-import javafx.util.Pair;
+import cn.edu.ruc.utils.Pair;
 import okhttp3.*;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Query;
