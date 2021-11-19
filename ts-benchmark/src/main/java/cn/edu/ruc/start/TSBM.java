@@ -347,6 +347,8 @@ public class TSBM {
         // farm++ test
         appendResultBuffer.append("###append farm++ result");
         appendResultBuffer.append(LINE_SEPARATOR);
+        appendResultBuffer.append("###farmNum\tthrougput(DP/sec)\ttotal DPs\tsuccess DPs\tsuccess rate%");
+        appendResultBuffer.append(LINE_SEPARATOR);
         for (int farm = 1; farm <= maxFarm; farm = farm * 2) {
             int batchMax = MAX_BATCH_NUM;
             int row = 50;
@@ -366,6 +368,7 @@ public class TSBM {
                     String path = basePath + "/farm/" + farm + "/" + batch + "/" + cFarm;
                     executeAppend(adapter, cs, path, thinkTimeMap.get(cFarm));
                 }
+
                 Pair<Long, Integer> throughtPutInsertCount = calcThroughtPut(row, farm, cs);
                 sumPps += throughtPutInsertCount.first;
                 sumInserts += throughtPutInsertCount.second;
@@ -378,7 +381,9 @@ public class TSBM {
                 sleep(sleepTime - costTime > 0 ? sleepTime - costTime : 1);
             }
 
-            long totalPoints = farm * row * MAX_SENSOR;//50个设备，50个传感器
+            // Each batch inserts all sensors of all devices in all farms.
+            // There are 'farm' number of farms, each farm has 50 devices and each device has 50 sensers.
+            long totalPoints = batchMax * farm * row * MAX_SENSOR;
 
             appendResultBuffer.append("farm");
             appendResultBuffer.append("\t");
@@ -398,6 +403,8 @@ public class TSBM {
         System.out.println(">>>>>>>>>>append-2 start " + System.currentTimeMillis() + ">>>>>>>>>>");
         // row++ test
         appendResultBuffer.append("###append device++ result");
+        appendResultBuffer.append(LINE_SEPARATOR);
+        appendResultBuffer.append("###DeviceNum\tthrougput(DP/sec)\ttotal DPs\tsuccess DPs\tsuccess rate%");
         appendResultBuffer.append(LINE_SEPARATOR);
         for (int row = 50; row <= maxRows; row = row + 50) {
             int batchMax = MAX_BATCH_NUM;
@@ -431,7 +438,9 @@ public class TSBM {
                 sleep(sleepTime - costTime > 0 ? sleepTime - costTime : 1);
             }
 
-            long totalPoints = farm * row * MAX_SENSOR;//50个设备，50个传感器
+            // Each batch inserts all sensors of all devices in all farms.
+            // There are 8 farms(farm). Each farm has 'row' number of devices and each device has 50 sensers.
+            long totalPoints = batchMax * farm * row * MAX_SENSOR;//50个设备，50个传感器
 
             appendResultBuffer.append("device");
             appendResultBuffer.append("\t");
@@ -469,7 +478,7 @@ public class TSBM {
         if (sumRespTimeSecAndSuccessCount != null) {
             successInsertCount = sumRespTimeSecAndSuccessCount.second;
             long sumRespTimeMs = sumRespTimeSecAndSuccessCount.first;
-            pps = (long) (successInsertCount / sumRespTimeMs / 1000.0);
+            pps = (long) (1000.0 * successInsertCount / sumRespTimeMs);
         }
         return new Pair(pps, successInsertCount);
     }
