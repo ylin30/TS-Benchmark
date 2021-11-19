@@ -327,7 +327,7 @@ public class TSBM {
             "   Successful insertions: " + (nums[1] + nums[3]) + " data points." + System.lineSeparator() +
             "   Success rate: " + String.format("(%.2f%%)", successRate) + System.lineSeparator() +
             "   Used Time (ms) :" + (nums[2] + nums[4]) + System.lineSeparator() +
-            "   Avg (ms):" + (nums[2] + nums[4])/(nums[1] + nums[3]) +
+            "   Avg (ms):" + 1.0*(nums[2] + nums[4])/(nums[1] + nums[3]) + System.lineSeparator() +
             "   Throughput (points/second):" + (long)(1000.0*(nums[1] + nums[3])/(nums[2] + nums[4]));
 
     }
