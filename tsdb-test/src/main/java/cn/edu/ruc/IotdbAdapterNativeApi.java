@@ -93,7 +93,7 @@ public class IotdbAdapterNativeApi implements BaseAdapter {
                     // success. Add cost time and success count.
                     long endTime = System.nanoTime();
                     cost = (endTime - startTime) / 1000 / 1000;
-                    System.out.println("Insert "+valuesList.size()+" Points, Use Time: " + cost + "ms");
+                    // System.out.println("Insert "+valuesList.size()+" Points, Use Time: " + cost + "ms");
                     costTime += cost;
                     totalCount += currCount;
                 } catch (IoTDBConnectionException e) {
