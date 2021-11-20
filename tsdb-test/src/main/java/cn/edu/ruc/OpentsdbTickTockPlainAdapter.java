@@ -33,9 +33,7 @@ public class OpentsdbTickTockPlainAdapter extends OpentsdbAdapter {
                 putReqSB.append(" "+FARM_TAG+"="+farmId);
                 putReqSB.append(" "+DEVICE_TAG+"="+deviceId);
                 putReqSB.append(" "+SENSOR_TAG+"="+sensorName);
-                if (index < (length - 1)) {
-                    putReqSB.append(System.lineSeparator());
-                }
+                putReqSB.append(System.lineSeparator());
             }
 
         }
