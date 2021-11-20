@@ -29,7 +29,7 @@ DATA_PATH="${BENCHMARK_HOME}"
 rm -rf "${DATA_PATH}"/farm
 rm -rf "${DATA_PATH}"/device
 ##测试数据库选择
-# 1:influxdb ;2:timescaledb ;3:iotdb ;4 opentsdb;5 druid;6 GaussDB(for Influx);7 tdengine;8 AliHiTSDB; 9 AliLindorm; 10 AliInfluxDB
+# 1:influxdb ;2:timescaledb ;3:iotdb ;4 opentsdb;5 druid;6 GaussDB(for Influx);7 tdengine;8 AliHiTSDB; 9 AliLindorm; 10 AliInfluxDB; 11. kdbPlus; 12 opentsdbTickTockPlain
 DB_CODE=5
 ##测试项选择
 # 0: generate,1:i,w,r ,2 w,r
