@@ -59,13 +59,15 @@
         <dependency>
             <groupId>com.taosdata.jdbc</groupId>
             <artifactId>taos-jdbcdriver</artifactId>
-            <version>2.0.18</version>
+            <version>2.0.22</version>
         </dependency>
-        <dependency>
+        <!-- conflicting with taos-jdbcdriver. commented out
+        <dependency> 
             <groupId>com.aliyun.lindorm</groupId>
             <artifactId>lindorm-all-client</artifactId>
             <version>1.0.0</version>
         </dependency>
+        -->
         <dependency>
             <groupId>com.aliyun</groupId>
             <artifactId>hitsdb-client</artifactId>

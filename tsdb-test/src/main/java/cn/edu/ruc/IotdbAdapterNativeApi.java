@@ -44,9 +44,9 @@ public class IotdbAdapterNativeApi implements BaseAdapter {
     public Pair<Long, Integer> insertData(String data) {
         String[] rows = data.split(TSBM.LINE_SEPARATOR);
         Long costTime = 0L;
-        Long cost = 0L;
         System.out.println("start insert " + rows.length * 50 + " Points");
         int totalCount = 0;
+        int currCount = 0;
         String format = "%s.%s.%s";
         List<List<String>> measurementsList = new ArrayList<List<String>>();
         List<List<Object>> valuesList = new ArrayList<List<Object>>();
@@ -65,7 +65,6 @@ public class IotdbAdapterNativeApi implements BaseAdapter {
             String deviceId = sensors[2];
             String path = String.format(format, rootSeries, farmId, deviceId);
 
-            int currCount = 0;
             int length = sensors.length;
             for (int index = 3; index < length; index++) {
                 currCount++;
@@ -85,14 +84,13 @@ public class IotdbAdapterNativeApi implements BaseAdapter {
             }
             turn++;
             if( turn == 5) {
-                turn = 0;
                 long startTime = System.nanoTime();
                 try {
                     session.insertRecords(paths, timestamps, measurementsList, typesList, valuesList);
 
                     // success. Add cost time and success count.
                     long endTime = System.nanoTime();
-                    cost = (endTime - startTime) / 1000 / 1000;
+                    long cost = (endTime - startTime) / 1000 / 1000;
                     // System.out.println("Insert "+valuesList.size()+" Points, Use Time: " + cost + "ms");
                     costTime += cost;
                     totalCount += currCount;
@@ -102,6 +100,8 @@ public class IotdbAdapterNativeApi implements BaseAdapter {
                     e.printStackTrace();
                 }
                 clearAll(measurementsList, valuesList, timestamps, paths, typesList);
+                currCount = 0;
+                turn = 0;
             }
         }
         return new Pair(costTime, totalCount);

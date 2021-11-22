@@ -12,8 +12,15 @@ public class OpentsdbTickTockPlainAdapter extends OpentsdbAdapter {
         String[] rows = data.split(TSBM.LINE_SEPARATOR);
         StringBuilder putReqSB = new StringBuilder();
 
-        int totalCount = 0;
+        int totalRespTimeMs = 0;
+        int totalDataPoints = 0;
+
+        int currDataPoints = 0;
+        int maxDataPointsPerReq = 50*50;
+
+        int rowIndex = 0;
         for (String row : rows) {
+            rowIndex++;
             String[] sensors = row.split(TSBM.SEPARATOR);
             if (sensors.length < 3) {//过滤空行
                 continue;
@@ -23,7 +30,8 @@ public class OpentsdbTickTockPlainAdapter extends OpentsdbAdapter {
             String deviceId = sensors[2];
             int length = sensors.length;
             for (int index = 3; index < length; index++) {
-                totalCount ++;
+                currDataPoints ++;
+
                 Double value = Double.parseDouble(sensors[index]);
                 String sensorName = "s" + (index - 2);
 
@@ -36,14 +44,24 @@ public class OpentsdbTickTockPlainAdapter extends OpentsdbAdapter {
                 putReqSB.append(System.lineSeparator());
             }
 
+            // Split all rows into several small requests.
+            if (currDataPoints >= maxDataPointsPerReq || rowIndex == rows.length) {
+                Request request = new Request.Builder()
+                    .url(writeURL)
+                    .post(RequestBody.create(MEDIA_TYPE_TEXT, putReqSB.toString()))
+                    .build();
+                long timeMs = exeOkHttpRequest(request);
+                if (timeMs != BaseAdapter.FAILURE) {
+                    totalRespTimeMs += timeMs;
+                    totalDataPoints += currDataPoints;
+                }
+
+                currDataPoints = 0;
+            }
         }
-        Request request = new Request.Builder()
-                .url(writeURL)
-                .post(RequestBody.create(MEDIA_TYPE_TEXT, putReqSB.toString()))
-                .build();
-        long timeMs = exeOkHttpRequest(request);
-        return (timeMs == BaseAdapter.FAILURE) ?
+
+        return (totalDataPoints == 0) ?
             null :
-            new Pair(timeMs, totalCount);
+            new Pair(totalRespTimeMs, totalDataPoints);
     }
 }

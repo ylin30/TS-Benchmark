@@ -21,7 +21,7 @@ public class TdengineAdapter2 implements BaseAdapter {
         if (connection != null) {
             return connection;
         }
-        this.url = String.format("jdbc:TAOS://%s:%s/test?user=root&password=taosdata", ip, port);
+        this.url = String.format("jdbc:TAOS://%s:%s/?user=root&password=taosdata", ip, port);
         try {
             Class.forName("com.taosdata.jdbc.TSDBDriver");
             Properties connProps = new Properties();
