@@ -13,9 +13,9 @@ import java.util.Date;
 public class TdengineAdapter2 implements BaseAdapter {
 
     private Connection connection = null;
-    private String url = null;
-    private String ip = null;
-    private String port = null;
+    protected String url = null;
+    protected String ip = null;
+    protected String port = null;
 
     public Connection getConnection() {
         if (connection != null) {
@@ -67,6 +67,11 @@ public class TdengineAdapter2 implements BaseAdapter {
 
     @Override
     public Pair<Long, Integer> insertData(String data) {
+        connection = getConnection();
+        return insertData(data, connection);
+    }
+
+    protected Pair<Long, Integer> insertData(String data, Connection connection) {
         String[] rows = data.split(TSBM.LINE_SEPARATOR);
         StringBuffer sqls = new StringBuffer();
         String sqlFormat = "%s USING metrics TAGS (\"%s\",\"%s\",\"%s\") VALUES (%s) ";
@@ -105,7 +110,6 @@ public class TdengineAdapter2 implements BaseAdapter {
                 //System.out.println(str);
                 String SQL = stringBuffer.append("INSERT INTO ").append(sqls.toString()).toString();
                 long startTime = System.nanoTime();
-                connection = getConnection();
                 if (connection != null) {
                     try {
                         Statement stmt = connection.createStatement();
@@ -164,6 +168,10 @@ public class TdengineAdapter2 implements BaseAdapter {
 
     public long execQuery(String sql) {
         connection = getConnection();
+        return execQuery(sql, connection);
+    }
+
+    protected long execQuery(String sql, Connection connection) {
         Statement statement = null;
         long costTime = 0;
         try {

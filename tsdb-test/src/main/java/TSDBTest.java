@@ -153,6 +153,17 @@ public class TSDBTest {
                 testOpentsdbTickTockPlain(false);
             }
         }
+        if ("13".equals(args[0])) {
+            if ("0".equals(args[1])) {
+                TSBM.generateData(dataPath);
+            }
+            if ("1".equals(args[1])) {
+                testTDEngineConnPool(true);
+            }
+            if ("2".equals(args[1])) {
+                testTDEngineConnPool(false);
+            }
+        }
     }
 
     private static void testKdbPlus(boolean loadParam) {
@@ -241,6 +252,15 @@ public class TSDBTest {
 
     public static void testTDEngine(boolean loadParam) {
         String className = "cn.edu.ruc.TdengineAdapter2";
+        testTDEngine(className, loadParam);
+    }
+
+    public static void testTDEngineConnPool(boolean loadParam) {
+        String className = "cn.edu.ruc.TdengineConnPoolAdapter";
+        testTDEngine(className, loadParam);
+    }
+
+    private static void testTDEngine(String className, boolean loadParam) {
         String ip = properties.getProperty("TDEngine_ip");
         String port = properties.getProperty("TDEngine_port");
         String userName = properties.getProperty("TDEngine_username"); //not required
