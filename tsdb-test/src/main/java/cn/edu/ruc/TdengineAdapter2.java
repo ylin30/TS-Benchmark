@@ -210,7 +210,7 @@ public class TdengineAdapter2 implements BaseAdapter {
 
     @Override
     public long query2(long start, long end, double value) {
-        String sqlFormat = "select time,farm,device,s from metrics where farm='%s' and s='%s' and vale>%s " +
+        String sqlFormat = "select time,farm,device,s from metrics where farm='%s' and s='%s' and value>%s " +
                 "and time>\"%s\" and time< \"%s\"";
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String start_time = sdf.format(new Date(Long.parseLong(String.valueOf(start))));
@@ -240,7 +240,7 @@ public class TdengineAdapter2 implements BaseAdapter {
     @Override
     public long query4(long start, long end) {
 
-        String sqlFormat = "select * from metrics where f='%s' and (s='%s' or s='%s' or s='%s' or s='%s' or s='%s') " +
+        String sqlFormat = "select * from metrics where farm='%s' and (s='%s' or s='%s' or s='%s' or s='%s' or s='%s') " +
                 "and time>=%s and time<=%s";
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String start_time = sdf.format(new Date(Long.parseLong(String.valueOf(start))));
