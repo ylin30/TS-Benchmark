@@ -23,18 +23,20 @@ public class TdengineConnPoolAdapter extends TdengineAdapter2 {
 
     @Override
     public void initConnect(String ip, String port, String user, String password) {
-        this.ip = ip;
-        this.port = port;
+        // Init databae test first.
+        super.initConnect(ip, port, user, password);
 
+        // Create a connection pool specifically for database test
         HikariConfig config = new HikariConfig();
-        this.url = String.format("jdbc:TAOS://%s:%s", ip, port);
+        config.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
+        this.url = String.format("jdbc:TAOS://test?%s:%s", ip, port);
         config.setJdbcUrl(this.url);
         config.setUsername("root");
         config.setPassword("taosdata");
 
         // connection pool configurations
-        config.setMinimumIdle(10);           //minimum number of idle connection
-        config.setMaximumPoolSize(10);      //maximum number of connection in the pool
+        config.setMinimumIdle(36);           //minimum number of idle connection
+        config.setMaximumPoolSize(128);      //maximum number of connection in the pool
         config.setConnectionTimeout(30000); //maximum wait milliseconds for get connection from pool
         config.setMaxLifetime(0);       // maximum life time for each connection
         config.setIdleTimeout(0);       // max idle time for recycle idle connection
@@ -42,29 +44,14 @@ public class TdengineConnPoolAdapter extends TdengineAdapter2 {
 
         this.ds = new HikariDataSource(config); //create datasource;
 
-        // 创建数据库
-        Connection connection = null;
-        try {
-            connection = getConnection();
-            Statement stm = connection.createStatement();
-            stm.executeUpdate("create database if not exists test");
-            stm.executeUpdate("use test");
-            // 创建超级表
-            stm.executeUpdate("create stable metrics (time timestamp, value float) TAGS (farm nchar(6), device nchar(6), s nchar(4))");
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (connection != null) {
-                    connection.close();
-                }
-            } catch (Exception e1) {
-                e1.printStackTrace();
-            }
-        }
         return;
     }
 
+    /**
+     * Override this in order to create database test before creating conn pool.
+     * @param data
+     * @return
+     */
     @Override
     public Pair<Long, Integer> insertData(String data) {
         Connection connection = null;

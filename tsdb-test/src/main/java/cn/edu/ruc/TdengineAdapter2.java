@@ -21,6 +21,10 @@ public class TdengineAdapter2 implements BaseAdapter {
         if (connection != null) {
             return connection;
         }
+        return createConnection();
+    }
+
+    public Connection createConnection() {
         this.url = String.format("jdbc:TAOS://%s:%s/?user=root&password=taosdata", ip, port);
         try {
             Class.forName("com.taosdata.jdbc.TSDBDriver");
@@ -51,7 +55,8 @@ public class TdengineAdapter2 implements BaseAdapter {
     public void initConnect(String ip, String port, String user, String password) {
         this.ip = ip;
         this.port = port;
-        connection = getConnection();
+        connection = createConnection();
+        
         // 创建数据库
         try {
             Statement stm = connection.createStatement();
