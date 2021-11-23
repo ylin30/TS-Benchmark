@@ -29,7 +29,7 @@ public class TdengineConnPoolAdapter extends TdengineAdapter2 {
         // Create a connection pool specifically for database test
         HikariConfig config = new HikariConfig();
         config.setDriverClassName("com.taosdata.jdbc.TSDBDriver");
-        this.url = String.format("jdbc:TAOS://test?%s:%s", ip, port);
+        this.url = String.format("jdbc:TAOS://%s:%s/test", ip, port);
         config.setJdbcUrl(this.url);
         config.setUsername("root");
         config.setPassword("taosdata");
