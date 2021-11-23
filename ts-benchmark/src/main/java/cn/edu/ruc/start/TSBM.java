@@ -345,23 +345,27 @@ public class TSBM {
         appendResultBuffer.append("##append  result");
         appendResultBuffer.append(LINE_SEPARATOR);
         // farm++ test
-        appendResultBuffer.append("###append farm++ result");
+        appendResultBuffer.append("###append farm++ result (DP=Data Point)");
         appendResultBuffer.append(LINE_SEPARATOR);
-        appendResultBuffer.append("###farmNum\tthrougput(DP/sec)\ttotal DPs\tsuccess DPs\tsuccess rate%");
+        appendResultBuffer.append("###farmNum\tDP/sec\tDP/sec(batch avg)\ttotal DPs\tsuccess DPs\tsuccess rate%");
         appendResultBuffer.append(LINE_SEPARATOR);
         for (int farm = 1; farm <= maxFarm; farm = farm * 2) {
             int batchMax = MAX_BATCH_NUM;
             int row = 50;
             ExecutorService pool = Executors.newFixedThreadPool(farm);
             CompletionService<Pair<Long, Integer>> cs = new ExecutorCompletionService<>(pool);
-            long sumPps = 0L;
+            long sumThroughput = 0L;
+            long sumRespMills = 0L;
             int sumInserts = 0;
             //每个风场，每个7s发送一次数据
             Map<Integer, Integer> thinkTimeMap = new HashMap<Integer, Integer>();
             for (int cFarm = 1; cFarm <= farm; cFarm++) {
-                int thinkTime = RANDOM.nextInt(sleepTime);
+                // In case the thread starts at exactly 7sec and the execution may cost 100ms.
+                int thinkTime = RANDOM.nextInt(sleepTime - 100);
                 thinkTimeMap.put(cFarm, thinkTime);
             }
+            System.out.println("Append test1 for farm num:" + farm + ", 50 devices starts >>>>>>>>>>>>>>>>>>>>>>>>>>");
+
             for (int batch = 1; batch <= batchMax; batch++) {
                 long startTime = System.currentTimeMillis();
                 for (int cFarm = 1; cFarm <= farm; cFarm++) {
@@ -369,17 +373,32 @@ public class TSBM {
                     executeAppend(adapter, cs, path, thinkTimeMap.get(cFarm));
                 }
 
-                Pair<Long, Integer> throughtPutInsertCount = calcThroughtPut(row, farm, cs);
-                sumPps += throughtPutInsertCount.first;
-                sumInserts += throughtPutInsertCount.second;
+                // We use two ways to calculate throughput.
+                // 1. total times (ms) to insert datapoints in all batch/total data points.
+                Pair<Long, Integer> sumRespTimeSecAndSuccessCount = calAvgTimeout(farm, cs);
+                sumRespMills += sumRespTimeSecAndSuccessCount.first;
+                sumInserts += sumRespTimeSecAndSuccessCount.second;
+
+                // 2. For each batch, calculate throughput(=total time/data points in the batch).
+                // Then take the average throughput of all batches.
+                // This approach is not accurate if one batch is very slow due to async APIs (e.g., TDEngine).
+                long currBatchThroughput = 0L;
+                if (sumRespTimeSecAndSuccessCount != null) {
+                    currBatchThroughput = (long) (1000.0 * sumRespTimeSecAndSuccessCount.second / sumRespTimeSecAndSuccessCount.first);
+                }
+                sumThroughput +=currBatchThroughput;
+
                 System.out.println("append 1." + farm + "." + batch +
-                    " finished. throughput: " + throughtPutInsertCount.first +
-                    " success inserts: " + throughtPutInsertCount.second);
+                    " finished. throughput: " + currBatchThroughput +
+                    " success inserts: " + sumRespTimeSecAndSuccessCount.second);
                 long endTime = System.currentTimeMillis();
                 long costTime = endTime - startTime;
                 // 每七秒执行一次
                 sleep(sleepTime - costTime > 0 ? sleepTime - costTime : 1);
             }
+
+            System.out.println("Append test1 for farm num:" + farm + ", 50 devices end <<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+
 
             // Each batch inserts all sensors of all devices in all farms.
             // There are 'farm' number of farms, each farm has 50 devices and each device has 50 sensers.
@@ -389,7 +408,9 @@ public class TSBM {
             appendResultBuffer.append("\t");
             appendResultBuffer.append(farm);
             appendResultBuffer.append("\t");
-            appendResultBuffer.append(sumPps / batchMax);
+            appendResultBuffer.append((long)(1000.0*sumRespMills / sumInserts));
+            appendResultBuffer.append("\t");
+            appendResultBuffer.append(sumThroughput / batchMax);
             appendResultBuffer.append("\t");
             appendResultBuffer.append(totalPoints);
             appendResultBuffer.append("\t");
@@ -402,41 +423,59 @@ public class TSBM {
         System.out.println(">>>>>>>>>>append-1 end " + System.currentTimeMillis() + ">>>>>>>>>>");
         System.out.println(">>>>>>>>>>append-2 start " + System.currentTimeMillis() + ">>>>>>>>>>");
         // row++ test
-        appendResultBuffer.append("###append device++ result");
+        appendResultBuffer.append("###append device++ result (DP=Data Point)");
         appendResultBuffer.append(LINE_SEPARATOR);
-        appendResultBuffer.append("###DeviceNum\tthrougput(DP/sec)\ttotal DPs\tsuccess DPs\tsuccess rate%");
+        appendResultBuffer.append("###DeviceNum\tDP/sec\tDP/sec(batch avg)\ttotal DPs\tsuccess DPs\tsuccess rate%");
         appendResultBuffer.append(LINE_SEPARATOR);
         for (int row = 50; row <= maxRows; row = row + 50) {
             int batchMax = MAX_BATCH_NUM;
             int farm = 8;//线程数
             ExecutorService pool = Executors.newFixedThreadPool(farm);
             CompletionService<Pair<Long, Integer>> cs = new ExecutorCompletionService<>(pool);
-            long sumPps = 0L;
+            long sumRespMills = 0L;
+            long sumThroughput = 0L;
             int sumInserts =0;
             //每个风场，每个7s发送一次数据
             Map<Integer, Integer> thinkTimeMap = new HashMap<Integer, Integer>();
             for (int cFarm = 1; cFarm <= farm; cFarm++) {
-                int thinkTime = RANDOM.nextInt(sleepTime);
+                // In case the thread starts at exactly 7sec and the execution may cost 200ms.
+                int thinkTime = RANDOM.nextInt(sleepTime - 200);
                 thinkTimeMap.put(cFarm, thinkTime);
             }
+            System.out.println("Append test2 for 8 farms, device num:" + row + " starts >>>>>>>>>>>>>>>>>>>>>>>>>>");
+
             for (int batch = 1; batch <= batchMax; batch++) {
                 long startTime = System.currentTimeMillis();
                 for (int cFarm = 1; cFarm <= farm; cFarm++) {
                     String path = basePath + "/device/" + row + "/" + batch + "/" + cFarm;
                     executeAppend(adapter, cs, path, thinkTimeMap.get(cFarm));
                 }
-                Pair<Long, Integer> throughtPutInsertCount = calcThroughtPut(row, farm, cs);
-                sumPps += throughtPutInsertCount.first;
-                sumInserts += throughtPutInsertCount.second;
-                System.out.println("append 2." + row + "." + batch +
-                    " finished. throughput: " + throughtPutInsertCount.first +
-                    " success inserts: " + throughtPutInsertCount.second);
+
+                // We use two ways to calculate throughput.
+                // 1. total times (ms) to insert datapoints in all batch/total data points.
+                Pair<Long, Integer> sumRespTimeSecAndSuccessCount = calAvgTimeout(farm, cs);
+                sumRespMills += sumRespTimeSecAndSuccessCount.first;
+                sumInserts += sumRespTimeSecAndSuccessCount.second;
+
+                // 2. For each batch, calculate throughput(=total time/data points in the batch).
+                // Then take the average throughput of all batches.
+                // This approach is not accurate if one batch is very slow due to async APIs (e.g., TDEngine).
+                long currBatchThroughput = 0L;
+                if (sumRespTimeSecAndSuccessCount != null) {
+                    currBatchThroughput = (long) (1000.0 * sumRespTimeSecAndSuccessCount.second / sumRespTimeSecAndSuccessCount.first);
+                }
+                sumThroughput +=currBatchThroughput;
+
+                System.out.println("append 2." + farm + "." + batch +
+                    " finished. throughput: " + currBatchThroughput +
+                    " success inserts: " + sumRespTimeSecAndSuccessCount.second);
 
                 long endTime = System.currentTimeMillis();
                 long costTime = endTime - startTime;
                 // 每七秒执行一次
                 sleep(sleepTime - costTime > 0 ? sleepTime - costTime : 1);
             }
+            System.out.println("Append test2 for 8 farms, device num:" + row + " end <<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 
             // Each batch inserts all sensors of all devices in all farms.
             // There are 8 farms(farm). Each farm has 'row' number of devices and each device has 50 sensers.
@@ -446,7 +485,9 @@ public class TSBM {
             appendResultBuffer.append("\t");
             appendResultBuffer.append(row);
             appendResultBuffer.append("\t");
-            appendResultBuffer.append(sumPps / batchMax);
+            appendResultBuffer.append((long)(1000.0*sumRespMills / sumInserts));
+            appendResultBuffer.append("\t");
+            appendResultBuffer.append(sumThroughput / batchMax);
             appendResultBuffer.append("\t");
             appendResultBuffer.append(totalPoints);
             appendResultBuffer.append("\t");
@@ -472,12 +513,12 @@ public class TSBM {
         long points = farm * row * MAX_SENSOR;//50个设备，50个传感器
         // Not all data points are successfully inserted.
 
-        Pair<Long, Integer> sumRespTimeSecAndSuccessCount = calAvgTimeout(farm, cs);
+        Pair<Long, Integer> sumRespTimeMsAndSuccessCount = calAvgTimeout(farm, cs);
         long pps = 0L;
         int successInsertCount = 0;
-        if (sumRespTimeSecAndSuccessCount != null) {
-            successInsertCount = sumRespTimeSecAndSuccessCount.second;
-            long sumRespTimeMs = sumRespTimeSecAndSuccessCount.first;
+        if (sumRespTimeMsAndSuccessCount != null) {
+            successInsertCount = sumRespTimeMsAndSuccessCount.second;
+            long sumRespTimeMs = sumRespTimeMsAndSuccessCount.first;
             pps = (long) (1000.0 * successInsertCount / sumRespTimeMs);
         }
         return new Pair(pps, successInsertCount);
