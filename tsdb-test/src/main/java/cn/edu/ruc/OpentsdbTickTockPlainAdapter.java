@@ -57,6 +57,11 @@ public class OpentsdbTickTockPlainAdapter extends OpentsdbAdapter {
                 }
 
                 currDataPoints = 0;
+                try{
+                    Thread.sleep(10);
+                } catch(InterruptedException e){
+                    e.printStackTrace();
+                }
             }
         }
 

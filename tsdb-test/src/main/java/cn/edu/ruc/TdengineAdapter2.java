@@ -241,7 +241,7 @@ public class TdengineAdapter2 implements BaseAdapter {
     public long query4(long start, long end) {
 
         String sqlFormat = "select * from metrics where farm='%s' and (s='%s' or s='%s' or s='%s' or s='%s' or s='%s') " +
-                "and time>=%s and time<=%s";
+                "and time>=\"%s\" and time<=\"%s\"";
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String start_time = sdf.format(new Date(Long.parseLong(String.valueOf(start))));
         String end_time = sdf.format(new Date(Long.parseLong(String.valueOf(end))));

@@ -438,8 +438,8 @@ public class TSBM {
             //每个风场，每个7s发送一次数据
             Map<Integer, Integer> thinkTimeMap = new HashMap<Integer, Integer>();
             for (int cFarm = 1; cFarm <= farm; cFarm++) {
-                // In case the thread starts at exactly 7sec and the execution may cost 200ms.
-                int thinkTime = RANDOM.nextInt(sleepTime - 200);
+                // In case the thread starts at exactly 7sec and the execution may cost 500ms.
+                int thinkTime = RANDOM.nextInt(sleepTime - 500);
                 thinkTimeMap.put(cFarm, thinkTime);
             }
             System.out.println("Append test2 for 8 farms, device num:" + row + " starts >>>>>>>>>>>>>>>>>>>>>>>>>>");
@@ -466,7 +466,7 @@ public class TSBM {
                 }
                 sumThroughput +=currBatchThroughput;
 
-                System.out.println("append 2." + farm + "." + batch +
+                System.out.println("append 2." + row + "." + batch +
                     " finished. throughput: " + currBatchThroughput +
                     " success inserts: " + sumRespTimeSecAndSuccessCount.second);
 
