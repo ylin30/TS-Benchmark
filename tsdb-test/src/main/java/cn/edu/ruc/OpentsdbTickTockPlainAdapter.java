@@ -12,7 +12,7 @@ public class OpentsdbTickTockPlainAdapter extends OpentsdbAdapter {
         String[] rows = data.split(TSBM.LINE_SEPARATOR);
         StringBuilder putReqSB = new StringBuilder();
 
-        int totalRespTimeMs = 0;
+        long totalRespTimeMs = 0L;
         int totalDataPoints = 0;
 
         int currDataPoints = 0;
@@ -57,11 +57,6 @@ public class OpentsdbTickTockPlainAdapter extends OpentsdbAdapter {
                 }
 
                 currDataPoints = 0;
-                try{
-                    Thread.sleep(10);
-                } catch(InterruptedException e){
-                    e.printStackTrace();
-                }
             }
         }
 

@@ -408,7 +408,7 @@ public class TSBM {
             appendResultBuffer.append("\t");
             appendResultBuffer.append(farm);
             appendResultBuffer.append("\t");
-            appendResultBuffer.append((long)(1000.0*sumRespMills / sumInserts));
+            appendResultBuffer.append((long)(1000.0*sumInserts / sumRespMills));
             appendResultBuffer.append("\t");
             appendResultBuffer.append(sumThroughput / batchMax);
             appendResultBuffer.append("\t");
@@ -485,7 +485,7 @@ public class TSBM {
             appendResultBuffer.append("\t");
             appendResultBuffer.append(row);
             appendResultBuffer.append("\t");
-            appendResultBuffer.append((long)(1000.0*sumRespMills / sumInserts));
+            appendResultBuffer.append((long)(1000.0*sumInserts / sumRespMills));
             appendResultBuffer.append("\t");
             appendResultBuffer.append(sumThroughput / batchMax);
             appendResultBuffer.append("\t");
