@@ -57,6 +57,7 @@ public class OpentsdbTickTockPlainAdapter extends OpentsdbAdapter {
                 }
 
                 currDataPoints = 0;
+                putReqSB.delete(0, putReqSB.length());
             }
         }
 
