@@ -83,7 +83,7 @@ public class TdengineAdapter2 implements BaseAdapter {
         int count = 0;
         long costTime = 0L;
         int totalUpdateCount =0;
-        int currUpdateCount = 0;
+        // int currUpdateCount = 0;
         for (String row : rows) {
             String[] sensors = row.split(TSBM.SEPARATOR);
             if (sensors.length < 3) {//过滤空行
@@ -96,7 +96,7 @@ public class TdengineAdapter2 implements BaseAdapter {
             StringBuffer values = new StringBuffer();
             int length = sensors.length;
             for (int index = 3; index < length; index++) {
-                currUpdateCount ++;
+                // currUpdateCount ++;
                 String sensorName = "s" + (index - 2);
                 String value = sensors[index];
                 String tbname = String.format("%s%s%s", farmId, deviceId,sensorName);
@@ -118,22 +118,26 @@ public class TdengineAdapter2 implements BaseAdapter {
                 if (connection != null) {
                     try {
                         Statement stmt = connection.createStatement();
-                        boolean success = stmt.execute(SQL);
+                        boolean isResultSet = stmt.execute(SQL);
                         sqls.setLength(0);
                         stmt.close();
-                        if (success) {
+                        if (!isResultSet) {
+                            // suppose insert data returning false
                             long endTime = System.nanoTime();
                             costTime += (endTime - startTime) / 1000 / 1000;
 
+                            int currUpdateCount = stmt.getUpdateCount();
                             // We assume each row has same number of sensors.
                             totalUpdateCount += currUpdateCount;
+
+                            System.out.println("success update count:" + currUpdateCount);
                         }
                     } catch (SQLException throwables) {
                         throwables.printStackTrace();
                     }
 
                     // Reset
-                    currUpdateCount = 0;
+                    // currUpdateCount = 0;
                 }
             }
         }
@@ -145,11 +149,13 @@ public class TdengineAdapter2 implements BaseAdapter {
                 try {
                     long startTime = System.nanoTime();
                     Statement stmt = connection.createStatement();
-                    boolean success = stmt.execute(SQL);
+                    boolean isResultSet = stmt.execute(SQL);
                     stmt.close();
-                    if (success) {
+                    if (!isResultSet) {
                         long endTime = System.nanoTime();
                         costTime += (endTime - startTime) / 1000 / 1000;
+
+                        int currUpdateCount = stmt.getUpdateCount();
                         // We assume each row has same number of sensors.
                         totalUpdateCount += currUpdateCount;
                     }
