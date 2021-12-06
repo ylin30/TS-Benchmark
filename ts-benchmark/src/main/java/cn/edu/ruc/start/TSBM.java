@@ -26,8 +26,8 @@ public class TSBM {
     private static final int MAX_SENSOR = 50;
     private static final int SUM_FARM = 2;
     private static final long IMPORT_START = 1514736000000L;
-    private static final int MAX_BATCH_NUM = 5 * 60 / 7; //5 * 3600 / 7; // 5 hours, batch interval: 7 sec, one timestamp one batch
-    private static final int MAX_QUERY_RANGE_HOURS = 24;
+    private static final int MAX_BATCH_NUM = 3600 / 7; // 5 hours, batch interval: 7 sec, one timestamp one batch
+    private static final int MAX_QUERY_RANGE_HOURS = 24 * 14;
     private static final int MAX_QUERY_BATCH = 10;
     private static final int IMPORT_DATA_HOURS = MAX_QUERY_RANGE_HOURS + MAX_QUERY_BATCH;
 
@@ -203,7 +203,7 @@ public class TSBM {
 
     private static String importData(BaseAdapter adapter, String dataPath) {
         long importStart = IMPORT_START;// 2018-01-01 00:00:00
-        long importEnd = IMPORT_START + IMPORT_DATA_HOURS * 3600 * 1000;
+        long importEnd = IMPORT_START + IMPORT_DATA_HOURS * 3600 * 1000L;
         final Boolean[] out = {false};
         // 0: total count;
         // 1: total successful inserts in thread 2;
@@ -235,7 +235,9 @@ public class TSBM {
 
                             long endTime = System.nanoTime();
                             long costTime = (endTime - startTime) / 1000000000;
-                            System.out.println("Prepared Total batch " + nums[0] + "(Each batch 2farms*50rows*50sensors), Used Time :" + costTime + "s");
+                            if (nums[0] % 10 == 0) {
+                               System.out.println("Prepared Total batch " + nums[0] + "(Each batch 2farms*50rows*50sensors), Used Time :" + costTime + "s");
+                            }
                         }
                     }
                 }
@@ -307,6 +309,7 @@ public class TSBM {
                         e.printStackTrace();
                     }
                 }
+
             }
         };
         try {

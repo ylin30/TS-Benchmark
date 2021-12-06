@@ -25,7 +25,7 @@ public class ValueUtils {
 
     private static double getValueBySensor(int sNum, long time) {
         if (sNum <= 26) {
-            return SENSOR_DATA.get((int) time)[sNum - 1];
+            return SENSOR_DATA.get(((int) time)%SENSOR_DATA.size())[sNum - 1];
         } else {
             //线性9；傅立叶6；分段9；
             double value = 0;
